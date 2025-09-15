@@ -6,15 +6,21 @@ An open-source, AI-augmented Property Management System designed for modern real
 
 ### Root Pages
 - `index.php` - Dashboard with key metrics and quick actions
-- `customers.html` - Customer management and profiles
-- `leads.html` - Lead tracking and conversion pipeline
-- `inventory.html` - Property inventory and unit management
-- `bookings.html` - Booking management and reservations
-- `finance.html` - Financial tracking and payment management
-- `compliance.html` - Regulatory compliance and documentation
-- `reports.html` - Analytics and reporting dashboard
-- `settings.html` - System configuration and preferences
-- `audit.html` - Audit trails and system logs
+- `customers.php` - Member management and profiles
+- `transfer.php` - Property transfer management and tracking
+- `possession.php` - Property possession and handover management
+- `cancellation.php` - Property cancellation and refund processing
+- `migration.php` - Property migration and unit changes
+- `inventory.php` - Property inventory and unit management
+- `bookings.php` - Booking management and reservations
+- `finance.php` - Financial tracking and payment management
+- `schedule.php` - Schedule management and appointments
+- `waiver.php` - Waiver management and documentation
+- `reminder.php` - Reminder system and notifications
+- `compliance.php` - Regulatory compliance and documentation
+- `reports.php` - Analytics and reporting dashboard
+- `settings.php` - System configuration and preferences
+- `audit.php` - Audit trails and system logs
 
 ### Specialized Modules
 
@@ -77,7 +83,18 @@ An open-source, AI-augmented Property Management System designed for modern real
 
 ## 📁 Recent Updates
 
-### Project Cleanup (Latest)
+### Navigation Restructure (Latest)
+- **Removed**: Leads page (`leads.php`) from main navigation
+- **Added**: Four new core property management pages:
+  - `transfer.php` - Property transfer management with approval workflows
+  - `possession.php` - Property possession and handover tracking
+  - `cancellation.php` - Property cancellation and refund processing
+  - `migration.php` - Property migration and unit change management
+- **Enhanced**: Schedule, Waiver, and Reminder pages with comprehensive functionality
+- **Updated**: Navigation terminology from "Customers" to "Members"
+- **Improved**: All pages feature modern card-based layouts with status indicators
+
+### Project Cleanup
 - Removed duplicate HTML files that existed in both root and subfolders
 - Cleaned up unnecessary PowerShell scripts
 - Streamlined project structure for better maintainability

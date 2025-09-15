@@ -27,6 +27,9 @@ $currentPage = 'customers';
                 <li><a href="#view" role="tab" aria-selected="false" class="subnav-pill">View</a></li>
                 <li><a href="#kyc" role="tab" aria-selected="false" class="subnav-pill">KYC Status</a></li>
                 <li><a href="#attachments" role="tab" aria-selected="false" class="subnav-pill">Attachments</a></li>
+                <li><a href="#schedule" role="tab" aria-selected="false" class="subnav-pill">Schedule</a></li>
+                <li><a href="#waiver" role="tab" aria-selected="false" class="subnav-pill">Waiver</a></li>
+                <li><a href="#reminder" role="tab" aria-selected="false" class="subnav-pill">Reminder</a></li>
             </ul>
         </nav>
 

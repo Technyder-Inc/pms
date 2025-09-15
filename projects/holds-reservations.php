@@ -130,7 +130,7 @@ include '../includes/header.php';
                         <option value="created-asc">Oldest First</option>
                         <option value="expiry-asc">Expiring Soon</option>
                         <option value="unit-asc">Unit Number</option>
-                        <option value="customer-asc">Customer Name</option>
+                        <option value="customer-asc">Member Detail</option>
                     </select>
                 </div>
             </div>
@@ -471,7 +471,7 @@ include '../includes/header.php';
                         <div class="form-row">
                             <div class="form-group">
                                 <label>Full Name *</label>
-                                <input type="text" class="form-control" id="customerName" placeholder="Enter customer name">
+                                <input type="text" class="form-control" id="customerName" placeholder="Enter member detail">
                             </div>
                             <div class="form-group">
                                 <label>Phone Number *</label>
