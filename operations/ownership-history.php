@@ -1,4 +1,10 @@
 <?php
+// Path variables for navigation and assets
+$base_path = '../';
+$css_path = '../public/';
+$js_path = '../public/';
+$assets_path = '../';
+
 $pageTitle = "Ownership History - Property Management System";
 $currentPage = "ownership-history";
 include '../includes/header.php';

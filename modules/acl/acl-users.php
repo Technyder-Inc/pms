@@ -1,9 +1,15 @@
 <?php
+// Path variables for navigation and assets
+$base_path = '../../';
+$css_path = '../../public/';
+$js_path = '../../public/';
+$assets_path = '../../';
+
 $pageTitle = 'User Management - Property Management System';
 $currentPage = 'acl-users';
 $breadcrumb_section = 'Access Control';
 $breadcrumb_current = 'User Management';
-include 'includes/header.php';
+include '../../includes/header.php';
 ?>
 
 <div class="page-header">
@@ -235,4 +241,4 @@ include 'includes/header.php';
     </div>
 </div>
 
-<?php include 'includes/footer.php'; ?>
+<?php include '../../includes/footer.php'; ?>
