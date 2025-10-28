@@ -10,3 +10,4 @@ Briefly describe the purpose of this PR.
 - [ ] Code builds successfully
 - [ ] Tests pass locally
 - [ ] Reviewer assigned
+- [ ] Follow company standard github practice
