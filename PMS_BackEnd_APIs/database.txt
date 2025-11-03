@@ -1,0 +1,294 @@
+connection string:
+psql 'postgresql://neondb_owner:npg_JU3APd1Tnklv@ep-damp-moon-adakk1sn-pooler.c-2.us-east-1.aws.neon.tech/pms?sslmode=require&channel_binding=require'
+
+-- QUERY TRUNCATED
+-- ===========================================================
+-- DATABASE SETUP (create manually in Neon dashboard)
+-- ===========================================================
+-- CREATE DATABASE pms;
+-- \c pms;
+
+-- ===========================================================
+-- USERS & ACCESS CONTROL
+-- ===========================================================
+CREATE TABLE acl (
+    role_id CHAR(10) PRIMARY KEY,
+    role_name VARCHAR(100),
+    permissions JSONB
+);
+
+CREATE TABLE users (
+    user_id CHAR(10) PRIMARY KEY,
+    full_name VARCHAR(150),
+    email VARCHAR(150) UNIQUE,
+    password_hash VARCHAR(256),
+    role_id CHAR(10) REFERENCES acl(role_id),
+    is_active BOOLEAN DEFAULT TRUE,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE user_sessions (
+    session_id CHAR(10) PRIMARY KEY,
+    user_id CHAR(10) REFERENCES users(user_id),
+    login_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    logout_time TIMESTAMP NULL,
+    ip_address VARCHAR(50),
+    device_info VARCHAR(150)
+);
+
+-- ===========================================================
+-- REGISTRATION & CUSTOMERS
+-- ===========================================================
+CREATE TABLE registration (
+    reg_id VARCHAR(10) PRIMARY KEY,
+    full_name VARCHAR(150),
+    cnic VARCHAR(50),
+    phone VARCHAR(50),
+    email VARCHAR(150),
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    status VARCHAR(50) DEFAULT 'Pending'
+);
+
+CREATE TABLE payment_plan (
+    plan_id CHAR(10) PRIMARY KEY,
+    project_id CHAR(10),
+    plan_name VARCHAR(150),
+    total_amount NUMERIC(18,2),
+    duration_months INT,
+    frequency VARCHAR(50),
+    description VARCHAR(255),
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE payment_schedule (
+    schedule_id CHAR(10) PRIMARY KEY,
+    plan_id CHAR(10) REFERENCES payment_plan(plan_id),
+    payment_description VARCHAR(250),
+    installment_no INT,
+    due_date DATE,
+    amount NUMERIC(18,2),
+    surcharge_applied BOOLEAN DEFAULT TRUE,
+    surcharge_rate NUMERIC(18,2) DEFAULT 0.05,
+    description VARCHAR(255)
+);
+
+CREATE TABLE customers (
+    customer_id CHAR(10) PRIMARY KEY,
+    reg_id VARCHAR(10) REFERENCES registration(reg_id) ON DELETE SET NULL,
+    plan_id CHAR(10) REFERENCES payment_plan(plan_id),
+    full_name VARCHAR(150),
+    father_name VARCHAR(150),
+    cnic VARCHAR(50),
+    passport_no VARCHAR(50),
+    dob DATE,
+    gender VARCHAR(20),
+    phone VARCHAR(50),
+    email VARCHAR(150),
+    mailing_address VARCHAR(255),
+    permanent_address VARCHAR(255),
+    city VARCHAR(100),
+    country VARCHAR(100),
+    sub_project VARCHAR(100),
+    registered_size VARCHAR(50),
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    status VARCHAR(50) DEFAULT 'Active',
+    nominee_name VARCHAR(100),
+    nominee_id VARCHAR(50),
+    nominee_relation VARCHAR(50),
+    additional_info TEXT
+);
+
+CREATE TABLE customer_logs (
+    log_id SERIAL PRIMARY KEY,
+    customer_id CHAR(10) REFERENCES customers(customer_id),
+    action VARCHAR(150),
+    remarks VARCHAR(255),
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    created_by CHAR(10)
+);
+
+-- ===========================================================
+-- PROJECTS & PROPERTIES
+-- ===========================================================
+CREATE TABLE projects (
+    project_id CHAR(10) PRIMARY KEY,
+    project_name VARCHAR(150),
+    type VARCHAR(50),
+    location VARCHAR(150),
+    description TEXT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE property (
+    property_id CHAR(10) PRIMARY KEY,
+    project_id CHAR(10) REFERENCES projects(project_id),
+    plot_no VARCHAR(50),
+    street VARCHAR(50),
+    plot_type VARCHAR(50),
+    block VARCHAR(50),
+    property_type VARCHAR(50),
+    size VARCHAR(50),
+    status VARCHAR(50) DEFAULT 'Available',
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    additional_info TEXT
+);
+
+CREATE TABLE allotment (
+    allotment_id CHAR(10) PRIMARY KEY,
+    property_id CHAR(10) REFERENCES property(property_id),
+    customer_id CHAR(10) REFERENCES customers(customer_id),
+    allotted_by CHAR(10) REFERENCES users(user_id),
+    allotment_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    approved_by VARCHAR(50),
+    allotment_type VARCHAR(50),
+    workflow_status VARCHAR(250),
+    comments TEXT,
+    additional_info TEXT
+);
+
+CREATE TABLE balloting (
+    ballot_id CHAR(10) PRIMARY KEY,
+    project_id CHAR(10) REFERENCES projects(project_id),
+    conducted_by CHAR(10) REFERENCES users(user_id),
+    conducted_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    remarks VARCHAR(255)
+);
+
+CREATE TABLE possession (
+    possession_id CHAR(10) PRIMARY KEY,
+    property_id CHAR(10) REFERENCES property(property_id),
+    customer_id CHAR(10) REFERENCES customers(customer_id),
+    possession_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    workflow_status VARCHAR(250),
+    comments TEXT,
+    remarks VARCHAR(255)
+);
+
+-- ===========================================================
+-- PAYMENT FLOW
+-- ===========================================================
+CREATE TABLE payments (
+    payment_id CHAR(10) PRIMARY KEY,
+    schedule_id CHAR(10) REFERENCES payment_schedule(schedule_id),
+    customer_id VARCHAR(10) REFERENCES customers(customer_id),
+    payment_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    amount NUMERIC(18,2),
+    method VARCHAR(50),
+    reference_no VARCHAR(100),
+    status VARCHAR(250),
+    remarks VARCHAR(255)
+);
+
+CREATE TABLE penalties (
+    penalty_id CHAR(10) PRIMARY KEY,
+    customer_id CHAR(10) REFERENCES customers(customer_id),
+    amount NUMERIC(18,2),
+    reason VARCHAR(255),
+    applied_on TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE waiver (
+    waiver_id CHAR(10) PRIMARY KEY,
+    customer_id CHAR(10) REFERENCES customers(customer_id),
+    amount NUMERIC(18,2),
+    reason VARCHAR(255),
+    approved_by CHAR(10) REFERENCES users(user_id),
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE refund (
+    refund_id CHAR(10) PRIMARY KEY,
+    customer_id CHAR(10) REFERENCES customers(customer_id),
+    amount NUMERIC(18,2),
+    reason VARCHAR(255),
+    status VARCHAR(50),
+    approved_by CHAR(10) REFERENCES users(user_id),
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- ===========================================================
+-- TRANSFERS, NDC, APPROVALS
+-- ===========================================================
+CREATE TABLE transfer (
+    transfer_id CHAR(10) PRIMARY KEY,
+    from_customer_id CHAR(10) REFERENCES customers(customer_id),
+    to_customer_id CHAR(10) REFERENCES customers(customer_id),
+    property_id CHAR(10) REFERENCES property(property_id),
+    status VARCHAR(50),
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE ndc (
+    ndc_id CHAR(10) PRIMARY KEY,
+    customer_id CHAR(10) REFERENCES customers(customer_id),
+    ndc_type VARCHAR(100),
+    title VARCHAR(500),
+    workflow_status VARCHAR(500),
+    comments TEXT,
+    issued_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    remarks VARCHAR(255)
+);
+
+CREATE TABLE approvals (
+    approval_id CHAR(10) PRIMARY KEY,
+    ref_type VARCHAR(50),
+    ref_id CHAR(10),
+    approved_by TEXT,
+    status VARCHAR(50),
+    remarks VARCHAR(255),
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- ===========================================================
+-- ATTACHMENTS, LOGS & NOTIFICATIONS
+-- ===========================================================
+CREATE TABLE attachments (
+    attachment_id CHAR(10) PRIMARY KEY,
+    ref_type VARCHAR(50),
+    ref_id CHAR(10),
+    file_path VARCHAR(255),
+    uploaded_by CHAR(10) REFERENCES users(user_id),
+    uploaded_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE activity_log (
+    log_id SERIAL PRIMARY KEY,
+    user_id CHAR(10) REFERENCES users(user_id),
+    action VARCHAR(255),
+    ref_type VARCHAR(50),
+    ref_id CHAR(10),
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE notifications (
+    notification_id CHAR(10) PRIMARY KEY,
+    user_id CHAR(10) REFERENCES users(user_id),
+    message VARCHAR(255),
+    is_read BOOLEAN DEFAULT FALSE,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- ===========================================================
+-- CONFIGURATION & SETTINGS
+-- ===========================================================
+CREATE TABLE configuration (
+    config_key VARCHAR(50) PRIMARY KEY,
+    category VARCHAR(50),
+    config_value JSONB,
+    description VARCHAR(255),
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP NULL,
+    updated_by CHAR(10) REFERENCES users(user_id)
+);
+
+-- ===========================================================
+-- PROPERTY INQUIRY (Website Form)
+-- ===========================================================
+CREATE TABLE property_inquiry (
+    inquiry_id SERIAL PRIMARY KEY,
+    full_name VARCHAR(150) NOT NULL,
+    phone_number VARCHAR(50) NOT NULL,
+    email_address VARCHAR(150),
+    inquiry_type VARCHAR(100),
+    message TEXT,
+    submitted_at TIMESTAMP DEFAULT CURRENT_TIMEST

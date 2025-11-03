@@ -1,0 +1,50 @@
+✅ 4. Sidebar Specification
+
+The sidebar must contain main modules and their sub-links.
+
+✅ 4.1 Sidebar Modules & Submenus
+1. Customers Module
+
+Sub-links:
+
+All Customers
+
+Active Customers
+
+Blocked Customers
+
+2. Property Module
+
+Sub-links:
+
+All Properties
+
+Developed Properties
+
+Allotted Properties
+
+Available Properties
+
+3. Payments Module
+
+Sub-links:
+
+All Deposit Challans
+
+Wrong Deposit Challans
+
+4. Schedule Module
+
+Sub-links:
+
+All Schedules
+
+Schedules by Size
+
+5. Transfer Module
+
+Sub-links:
+
+Transfer Completed
+
+In-Process Transfers

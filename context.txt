@@ -1,0 +1,180 @@
+Use the Folloting Specifications and create the frontend and home page for Property Management System
+
+✅ Property Management System – Frontend Specification (React.js)
+1. Technology Stack
+
+Frontend Framework: React.js (with functional components + hooks)
+
+UI Library: TailwindCSS / Material UI (you may choose)
+
+Routing: React Router
+
+State Management: Redux Toolkit or Context API (specify later)
+
+API Communication: Axios (REST APIs from .NET Core backend)
+
+Authentication: JWT Token-based (login, logout, session handling)
+
+✅ 2. Application Layout
+2.1 Global Layout
+
+Every page should follow the same layout:
+
+Top Navigation Bar (Header)
+
+Left Sidebar (Module Menu)
+
+Main Content Area (dynamic based on selected module)
+
+Responsive UI (collapsible sidebar for small screens)
+
+✅ 3. Top Bar (Header) Requirements
+
+
+✅ 5. Frontend Pages to Generate
+5.1 Dashboard (Home Page)
+
+Show quick stats (optional)
+
+Display shortcut cards for major modules
+
+✅ 5.2 Customers Module Pages
+✔ All Customers Page
+
+Table with columns: Customer ID, Name, Phone, Type, Status
+
+Search + Filters
+
+Pagination
+
+✔ Active Customers Page
+
+Same table but filter = Active
+
+✔ Blocked Customers Page
+
+Same table but filter = Blocked
+
+✅ 5.3 Property Module Pages
+✔ All Properties
+
+Fields: Plot No, Size, Status, Owner, Type
+
+✔ Developed Properties
+
+Filter = Developed
+
+✔ Allotted Properties
+
+Filter = Allotted
+
+✔ Available Properties
+
+Filter = Available
+
+✅ 5.4 Payments Module Pages
+✔ All Deposit Challans
+
+Fields: Challan No, Customer, Amount, Date, Status
+
+✔ Wrong Deposit Challans
+
+Filter = Wrong Challans
+
+✅ 5.5 Schedule Module Pages
+✔ All Schedules
+
+Fields: Schedule ID, Customer, Property, Installments, Status
+
+✔ Schedules by Size
+
+Filter schedules by plot size (e.g., 5 Marla, 10 Marla, 1 Kanal)
+
+✅ 5.6 Transfer Module Pages
+✔ Transfer Completed
+
+Filter = Completed
+
+✔ In-Process Transfers
+
+Filter = In-Process
+
+✅ 6. Common Component Requirements
+Tables
+
+Sorting
+
+Searching
+
+Pagination
+
+Export options (optional)
+
+Forms
+
+Validation (client-side)
+
+Success & error alerts
+
+Reusable Components
+
+Sidebar
+
+Topbar
+
+Button
+
+Table Wrapper
+
+Modal Dialog
+
+✅ 7. Routing Structure (React Router)
+
+Example structure:
+
+/customers/all
+/customers/active
+/customers/blocked
+
+/property/all
+/property/developed
+/property/allotted
+/property/available
+
+/payments/all
+/payments/wrong
+
+/schedules/all
+/schedules/by-size
+
+/transfer/completed
+/transfer/in-process
+
+✅ 8. Authentication
+Login Page
+
+Email + Password
+
+On success → store JWT token, redirect to Dashboard
+
+Auth Guard
+
+Prevent access if not logged in
+
+Auto redirect to login
+
+✅ 9. Error Pages
+
+404 Page Not Found
+
+500 Server Error
+
+✅ This is a fully cleaned & ready-to-use specification for your React.js frontend.
+✅ You can directly paste this into Cursor and generate your components.
+
+If you want, I can also generate:
+
+✅ File/folder structure
+✅ API service templates
+✅ UI mockups
+✅ State management plan
