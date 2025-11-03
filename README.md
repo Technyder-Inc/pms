@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 # Property Management System (PMS)
 
 A comprehensive property management system with React.js frontend and .NET Core Web API backend.
@@ -248,3 +249,23 @@ This project is private and confidential.
 ## 📞 Support
 
 For technical support or questions, please contact the development team.
+=======
+# 🏢 Technyder PMS (Property Management System)
+
+### Overview
+Technyder PMS is an enterprise-ready Property Management System designed to manage customers, leads, bookings, inventory, finance, and compliance workflows in a modular, scalable architecture.
+
+---
+
+### Features
+- Secure user authentication and session management  
+- Role-based access control (RBAC)  
+- Modular architecture (Customers, Leads, Bookings, Finance, Compliance, Reports)  
+- Company and region configuration  
+- Audit logging and activity tracking  
+- Ready for multi-company and future AI integrations  
+
+---
+
+### Folder Structure
+>>>>>>> 78f7ae05603ce8b870f5c4d14ccc6fbdf5f7ac4f
