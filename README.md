@@ -474,3 +474,57 @@ For technical support or questions, please contact the development team.
 - Supported values: `Allotted`, `Not Allotted`, `Pending`.
 - Legacy param `allotment` is still accepted and mapped to `Allotted`/`Not Allotted`.
 - No SQL joins to `allotments` are used for this list to avoid 42P01 errors.
+## 🖱️ Customers Grid Interaction (New)
+
+- Double-click any row in `Customers > All Customers` to open a detail modal.
+- The modal fetches full details from `GET /api/Customers/{id}` and displays key fields.
+- Styling follows brand: header uses `#dd9c6b`, content in `Lexend`.
+- Close the modal by clicking outside or using the `Close` button.
+
+### Frontend Implementation Notes
+- Added `getCustomer(id)` in `frontend/src/utils/api.js`.
+- Added `onDoubleClick` on table rows in `frontend/src/pages/Customers.js`.
+- Uses a simple modal with backdrop; no external dependencies.
+
+### Troubleshooting
+- If details fail to load, ensure the API is running at `http://localhost:5296` and CORS allows `http://localhost:3000` (configured in `Program.cs`).
+- Set `REACT_APP_API_URL` if your API runs elsewhere:
+  ```powershell
+  cd pms/frontend
+  $env:REACT_APP_API_URL='http://localhost:5296'; npm start
+  ```
+#### Troubleshooting (Neon/PostgreSQL)
+- Foreign key error `users_role_id_fkey` (code `23503`) during registration means the provided `roleId` does not exist in your Neon DB roles table.
+  - Quick fix (MVP): omit `roleId` in the registration payload or set it to `null`. The API now gracefully retries save without `roleId` if this FK violation occurs.
+  - Scalable option: create a `roles` table and insert valid roles (e.g., `ADMIN`, `USER`, `MANAGER`) that match your business rules, then keep `roleId` required and add validation.
+  - Example registration without role:
+    ```powershell
+    Invoke-WebRequest -Uri "http://localhost:5296/api/Auth/register" -Method POST -ContentType "application/json" -Body '{"fullName":"QA Tester","email":"qa.tester@example.com","password":"1234","isActive":true}'
+    ```
+  - If you prefer to keep `roleId`, ensure the referenced role exists before registering.
+
+#### Notes on Dev Initializers
+- We removed the dev-only initializer that auto-created the `users` table at startup to keep production code clean. Use EF migrations or explicit SQL to manage schema.
+- If your Neon DB is missing `users`, run migrations or create the table manually based on your schema design.
+
+## 🔓 Frontend Login Troubleshooting
+
+- Ensure the frontend is running at `http://localhost:3000` and the backend at `http://localhost:5296`.
+- Set the API base URL explicitly in `frontend/.env.local`:
+  
+  ```bash
+  REACT_APP_API_URL=http://localhost:5296
+  ```
+  
+  Restart `npm start` after creating or changing `.env.local`.
+- CORS is enabled for `http://localhost:3000` and `http://localhost:3001` in `backend/PMS_APIs/Program.cs`.
+- Test login via PowerShell to verify credentials:
+  
+  ```powershell
+  Invoke-WebRequest -Uri "http://localhost:5296/api/Auth/login" -Method POST -ContentType "application/json" -Body '{"email":"qa.tester@example.com","password":"1234"}'
+  ```
+- If the UI shows "Login failed", open the browser console and network tab:
+  - 401 Unauthorized: wrong email/password or inactive user.
+  - 500 Internal Server Error: backend issue (see `AuthController` logs).
+  - CORS preflight failing: confirm origin is `localhost:3000` and backend is running.
+- The frontend now stores auth robustly even if the backend returns PascalCase keys.

@@ -59,3 +59,48 @@ export async function getCustomers(params = {}) {
 
   return fetchJson(path);
 }
+
+/**
+ * getCustomer
+ * Purpose: Fetch a single customer by ID for detail view.
+ * Inputs:
+ *  - id: string customer identifier (e.g., 'C0001234')
+ * Outputs:
+ *  - Returns a customer object with related entities when available
+ */
+export async function getCustomer(id) {
+  if (!id) throw new Error('Customer id is required');
+  return fetchJson(`/api/Customers/${encodeURIComponent(id)}`);
+}
+
+/**
+ * login
+ * Purpose: Authenticate a user with email and password, store JWT.
+ * Inputs:
+ *  - email: string user email
+ *  - password: string user password
+ * Outputs:
+ *  - Returns the login response { token, expiresAt, user }
+ *  - Side effect: stores `jwt`, `jwt_expires`, and `user` in localStorage
+ */
+export async function login(email, password) {
+  if (!email || !password) throw new Error('Email and password are required');
+  const res = await fetchJson('/api/Auth/login', {
+    method: 'POST',
+    body: JSON.stringify({ email, password }),
+  });
+
+  // Persist auth (robust to different JSON casing)
+  const token = res.token ?? res.Token;
+  const expiresAt = res.expiresAt ?? res.ExpiresAt;
+  const user = res.user ?? res.User;
+
+  if (!token) {
+    throw new Error('Login succeeded but no token returned');
+  }
+
+  localStorage.setItem('jwt', token);
+  localStorage.setItem('jwt_expires', typeof expiresAt === 'string' ? expiresAt : String(expiresAt ?? ''));
+  localStorage.setItem('user', JSON.stringify(user));
+  return { token, expiresAt, user };
+}

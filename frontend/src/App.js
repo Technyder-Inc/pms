@@ -11,15 +11,18 @@ import {
   Calendar,
   Reports,
   Settings,
-  Customers
+  Customers,
+  Login
 } from './pages';
 
 function App() {
   return (
-    <ThemeProvider theme={theme}>
+  <ThemeProvider theme={theme}>
       <GlobalStyles />
       <Router future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
         <Routes>
+          {/* Public routes */}
+          <Route path="/login" element={<Login />} />
           <Route path="/" element={<Layout />}>
             <Route index element={<Navigate to="/dashboard" replace />} />
           <Route path="dashboard" element={<Dashboard />} />

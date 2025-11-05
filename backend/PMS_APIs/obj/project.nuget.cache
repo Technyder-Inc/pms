@@ -1,8 +1,8 @@
 {
   "version": 2,
-  "dgSpecHash": "N7PduSYSp8U=",
+  "dgSpecHash": "/ddG/xLofaU=",
   "success": true,
-  "projectFilePath": "D:\\technyder\\pms - Copy\\backend\\PMS_APIs\\PMS_APIs.csproj",
+  "projectFilePath": "D:\\technyder\\pms\\backend\\PMS_APIs\\PMS_APIs.csproj",
   "expectedPackageFiles": [
     "C:\\Users\\Shaid Ghauri\\.nuget\\packages\\humanizer.core\\2.14.1\\humanizer.core.2.14.1.nupkg.sha512",
     "C:\\Users\\Shaid Ghauri\\.nuget\\packages\\microsoft.aspnetcore.authentication.jwtbearer\\8.0.11\\microsoft.aspnetcore.authentication.jwtbearer.8.0.11.nupkg.sha512",

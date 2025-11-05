@@ -1,17 +1,17 @@
 {
   "format": 1,
   "restore": {
-    "D:\\technyder\\pms - Copy\\backend\\PMS_APIs\\PMS_APIs.csproj": {}
+    "D:\\technyder\\pms\\backend\\PMS_APIs\\PMS_APIs.csproj": {}
   },
   "projects": {
-    "D:\\technyder\\pms - Copy\\backend\\PMS_APIs\\PMS_APIs.csproj": {
+    "D:\\technyder\\pms\\backend\\PMS_APIs\\PMS_APIs.csproj": {
       "version": "1.0.0",
       "restore": {
-        "projectUniqueName": "D:\\technyder\\pms - Copy\\backend\\PMS_APIs\\PMS_APIs.csproj",
+        "projectUniqueName": "D:\\technyder\\pms\\backend\\PMS_APIs\\PMS_APIs.csproj",
         "projectName": "PMS_APIs",
-        "projectPath": "D:\\technyder\\pms - Copy\\backend\\PMS_APIs\\PMS_APIs.csproj",
+        "projectPath": "D:\\technyder\\pms\\backend\\PMS_APIs\\PMS_APIs.csproj",
         "packagesPath": "C:\\Users\\Shaid Ghauri\\.nuget\\packages\\",
-        "outputPath": "D:\\technyder\\pms - Copy\\backend\\PMS_APIs\\obj\\",
+        "outputPath": "D:\\technyder\\pms\\backend\\PMS_APIs\\obj\\",
         "projectStyle": "PackageReference",
         "fallbackFolders": [
           "C:\\Program Files\\DevExpress 22.2\\Components\\Offline Packages",

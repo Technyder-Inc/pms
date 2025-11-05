@@ -203,20 +203,100 @@ namespace PMS_APIs.Controllers
         [HttpGet("{id}")]
         public async Task<ActionResult<Customer>> GetCustomer(string id)
         {
-            var customer = await _context.Customers
-                .Include(c => c.Registration)
-                .Include(c => c.PaymentPlan)
-                .Include(c => c.Allotments)
-                    .ThenInclude(a => a.Property)
-                .Include(c => c.Payments)
-                .FirstOrDefaultAsync(c => c.CustomerId == id);
-
-            if (customer == null)
+            // Guard invalid id
+            if (string.IsNullOrWhiteSpace(id))
             {
-                return NotFound(new { message = "Customer not found" });
+                return BadRequest(new { message = "Invalid customer id" });
             }
 
-            return Ok(customer);
+            try
+            {
+                // Primary path: fetch with related entities when available
+                var customer = await _context.Customers
+                    .Include(c => c.Registration)
+                    .Include(c => c.PaymentPlan)
+                    .Include(c => c.Allotments)
+                        .ThenInclude(a => a.Property)
+                    .Include(c => c.Payments)
+                    .FirstOrDefaultAsync(c => c.CustomerId == id);
+
+                if (customer == null)
+                {
+                    return NotFound(new { message = "Customer not found" });
+                }
+
+                return Ok(customer);
+            }
+            catch (Exception)
+            {
+                // Fallback path: if related tables are missing or schema differs,
+                // return a lean customer record from the base table only.
+                var conn = _context.Database.GetDbConnection();
+                if (conn.State != System.Data.ConnectionState.Open)
+                {
+                    await conn.OpenAsync();
+                }
+
+                using (var cmd = conn.CreateCommand())
+                {
+                    cmd.CommandText = @"SELECT customer_id, reg_id, plan_id, full_name, father_name, cnic, passport_no, dob, gender, phone, email, mailing_address, permanent_address, city, country, sub_project, registered_size, created_at, status, nominee_name, nominee_id, nominee_relation, additional_info FROM customers WHERE customer_id = @id LIMIT 1";
+                    var p = cmd.CreateParameter();
+                    p.ParameterName = "@id";
+                    p.Value = id;
+                    cmd.Parameters.Add(p);
+
+                    using (var reader = await cmd.ExecuteReaderAsync())
+                    {
+                        if (!await reader.ReadAsync())
+                        {
+                            return NotFound(new { message = "Customer not found" });
+                        }
+
+                        var result = new Customer
+                        {
+                            CustomerId = Convert.ToString(reader["customer_id"]) ?? string.Empty,
+                            RegId = Convert.ToString(reader["reg_id"]) ?? null,
+                            PlanId = Convert.ToString(reader["plan_id"]) ?? null,
+                            FullName = Convert.ToString(reader["full_name"]) ?? null,
+                            FatherName = Convert.ToString(reader["father_name"]) ?? null,
+                            Cnic = Convert.ToString(reader["cnic"]) ?? null,
+                            PassportNo = Convert.ToString(reader["passport_no"]) ?? null,
+                            Gender = Convert.ToString(reader["gender"]) ?? null,
+                            Phone = Convert.ToString(reader["phone"]) ?? null,
+                            Email = Convert.ToString(reader["email"]) ?? null,
+                            MailingAddress = Convert.ToString(reader["mailing_address"]) ?? null,
+                            PermanentAddress = Convert.ToString(reader["permanent_address"]) ?? null,
+                            City = Convert.ToString(reader["city"]) ?? null,
+                            Country = Convert.ToString(reader["country"]) ?? null,
+                            SubProject = Convert.ToString(reader["sub_project"]) ?? null,
+                            RegisteredSize = Convert.ToString(reader["registered_size"]) ?? null,
+                            CreatedAt = reader["created_at"] is DateTime dt ? dt : DateTime.UtcNow,
+                            Status = Convert.ToString(reader["status"]) ?? "Active",
+                            NomineeName = Convert.ToString(reader["nominee_name"]) ?? null,
+                            NomineeId = Convert.ToString(reader["nominee_id"]) ?? null,
+                            NomineeRelation = Convert.ToString(reader["nominee_relation"]) ?? null,
+                            AdditionalInfo = Convert.ToString(reader["additional_info"]) ?? null,
+                        };
+
+                        // Handle optional DateOnly for dob
+                        var dobObj = reader["dob"];
+                        if (dobObj is DateTime dobDt)
+                        {
+                            result.Dob = DateOnly.FromDateTime(dobDt);
+                        }
+                        else if (dobObj is DateOnly dobOnly)
+                        {
+                            result.Dob = dobOnly;
+                        }
+                        else
+                        {
+                            result.Dob = null;
+                        }
+
+                        return Ok(result);
+                    }
+                }
+            }
         }
 
         /// <summary>

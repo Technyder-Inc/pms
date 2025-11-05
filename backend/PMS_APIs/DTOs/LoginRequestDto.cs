@@ -21,7 +21,9 @@ namespace PMS_APIs.DTOs
         /// Must be provided and not empty
         /// </summary>
         [Required(ErrorMessage = "Password is required")]
-        [MinLength(6, ErrorMessage = "Password must be at least 6 characters long")]
+        // Accept 4+ chars to support existing seed data (e.g., "1234").
+        // For production, prefer 8+ with complexity requirements.
+        [MinLength(4, ErrorMessage = "Password must be at least 4 characters long")]
         public string Password { get; set; } = string.Empty;
     }
 }

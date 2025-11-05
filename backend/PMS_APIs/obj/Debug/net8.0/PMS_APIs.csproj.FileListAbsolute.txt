@@ -601,3 +601,4 @@ D:\technyder\pms - Copy\backend\PMS_APIs\obj\Debug\net8.0\refint\PMS_APIs.dll
 D:\technyder\pms - Copy\backend\PMS_APIs\obj\Debug\net8.0\PMS_APIs.pdb
 D:\technyder\pms - Copy\backend\PMS_APIs\obj\Debug\net8.0\PMS_APIs.genruntimeconfig.cache
 D:\technyder\pms - Copy\backend\PMS_APIs\obj\Debug\net8.0\ref\PMS_APIs.dll
+D:\technyder\pms\backend\PMS_APIs\obj\Debug\net8.0\PMS_APIs.sourcelink.json

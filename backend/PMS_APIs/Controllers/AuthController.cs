@@ -54,8 +54,21 @@ namespace PMS_APIs.Controllers
                     return Unauthorized(new { message = "Invalid email or password" });
                 }
 
-                // Verify password
-                if (!VerifyPassword(loginRequest.Password, user.PasswordHash))
+                // Verify password (supports legacy plaintext stored hashes)
+                bool verified = VerifyPassword(loginRequest.Password, user.PasswordHash);
+                if (!verified)
+                {
+                    // Legacy fallback: if the stored value is plaintext and matches input,
+                    // accept and upgrade to hashed on the fly.
+                    if (loginRequest.Password == user.PasswordHash)
+                    {
+                        user.PasswordHash = HashPassword(loginRequest.Password);
+                        await _context.SaveChangesAsync();
+                        verified = true;
+                    }
+                }
+
+                if (!verified)
                 {
                     return Unauthorized(new { message = "Invalid email or password" });
                 }
@@ -131,7 +144,42 @@ namespace PMS_APIs.Controllers
                 };
 
                 _context.Users.Add(user);
-                await _context.SaveChangesAsync();
+                try
+                {
+                    await _context.SaveChangesAsync();
+                }
+                catch (DbUpdateException dbEx)
+                {
+                    // If role_id violates FK constraint, fallback to null and retry (MVP)
+                    var inner = dbEx.InnerException?.Message ?? string.Empty;
+                    if (inner.Contains("users_role_id_fkey") || inner.Contains("23503"))
+                    {
+                        user.RoleId = null;
+                        try
+                        {
+                            await _context.SaveChangesAsync();
+                        }
+                        catch (DbUpdateException dbEx2)
+                        {
+                            return StatusCode(500, new
+                            {
+                                message = "Database update failed during registration (retry without role_id)",
+                                error = dbEx2.Message,
+                                innerError = dbEx2.InnerException?.Message
+                            });
+                        }
+                    }
+                    else
+                    {
+                        // Surface inner exception for easier troubleshooting (dev-friendly)
+                        return StatusCode(500, new
+                        {
+                            message = "Database update failed during registration",
+                            error = dbEx.Message,
+                            innerError = dbEx.InnerException?.Message
+                        });
+                    }
+                }
 
                 var userDto = new UserDto
                 {
@@ -147,7 +195,13 @@ namespace PMS_APIs.Controllers
             }
             catch (Exception ex)
             {
-                return StatusCode(500, new { message = "An error occurred during registration", error = ex.Message });
+                // Include inner exception details to pinpoint root cause without exposing stack trace
+                return StatusCode(500, new
+                {
+                    message = "An error occurred during registration",
+                    error = ex.Message,
+                    innerError = ex.InnerException?.Message
+                });
             }
         }
 

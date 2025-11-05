@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import styled from 'styled-components';
 import { useParams, useNavigate } from 'react-router-dom';
-import { getCustomers } from '../utils/api';
+import { getCustomers, getCustomer } from '../utils/api';
 
 const PageContainer = styled.div`
   background: white;
@@ -116,6 +116,51 @@ const DetailText = styled.span`
   font-weight: 600;
 `;
 
+const ModalBackdrop = styled.div`
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background: rgba(0, 0, 0, 0.3);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+`;
+
+const ModalCard = styled.div`
+  width: 720px;
+  max-width: 92vw;
+  background: white;
+  border-radius: 10px;
+  box-shadow: 0 12px 30px rgba(0,0,0,0.2);
+  overflow: hidden;
+`;
+
+const ModalHeader = styled.div`
+  background: ${props => props.theme.colors.primary};
+  color: white;
+  font-family: 'Lexend', sans-serif;
+  padding: 0.75rem 1rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+`;
+
+const ModalBody = styled.div`
+  padding: 1rem;
+`;
+
+const CloseButton = styled.button`
+  background: transparent;
+  color: white;
+  border: 1px solid rgba(255,255,255,0.7);
+  padding: 0.25rem 0.5rem;
+  border-radius: 4px;
+  cursor: pointer;
+`;
+
 /**
  * CustomersPage
  * Purpose: Display customers list with filters aligned to route segment.
@@ -142,6 +187,10 @@ export default function CustomersPage() {
   const [totalPages, setTotalPages] = useState(1);
   const [statusFilter, setStatusFilter] = useState(''); // '', Active, Blocked, Cancelled
   const [allotmentFilter, setAllotmentFilter] = useState(''); // '', Allotted, Not Allotted, Pending
+  const [selectedId, setSelectedId] = useState(null);
+  const [detail, setDetail] = useState(null);
+  const [detailLoading, setDetailLoading] = useState(false);
+  const [detailError, setDetailError] = useState('');
 
   const filter = useMemo(() => {
     switch (view) {
@@ -197,6 +246,31 @@ export default function CustomersPage() {
       isMounted = false;
     };
   }, [filter, statusFilter, allotmentFilter, page, pageSize]);
+
+  /**
+   * handleRowDoubleClick
+   * Purpose: Open the modal and load the selected customer's details.
+   * Inputs:
+   *  - id: string customer identifier from the row
+   * Outputs:
+   *  - Sets modal state and populates detail data
+   */
+  const handleRowDoubleClick = async (id) => {
+    const cid = String(id || '').trim();
+    if (!cid) return;
+    setSelectedId(cid);
+    setDetail(null);
+    setDetailError('');
+    setDetailLoading(true);
+    try {
+      const data = await getCustomer(cid);
+      setDetail(data);
+    } catch (e) {
+      setDetailError(e.message || 'Failed to load customer details');
+    } finally {
+      setDetailLoading(false);
+    }
+  };
 
   const filtered = useMemo(() => {
     const norm = v => String(v ?? '').trim().toLowerCase();
@@ -283,7 +357,12 @@ export default function CustomersPage() {
           </thead>
           <tbody>
             {filtered.map((c) => (
-              <tr key={c.CustomerId || c.customerId || c.id}>
+              <tr
+                key={c.CustomerId || c.customerId || c.id}
+                onDoubleClick={() => handleRowDoubleClick(c.CustomerId || c.customerId || c.id)}
+                style={{ cursor: 'pointer' }}
+                title="Double-click to open details"
+              >
                 <Td>{c.CustomerId || c.customerId || c.id}</Td>
                 <Td>{c.FullName || c.fullName || c.full_name || c.Name || c.name}</Td>
                 <Td>{c.Cnic || c.cnic}</Td>
@@ -339,6 +418,38 @@ export default function CustomersPage() {
             </SmallButton>
           </Pager>
         </Footer>
+      )}
+
+      {/* Detail Modal */}
+      {selectedId && (
+        <ModalBackdrop onClick={() => { setSelectedId(null); setDetail(null); }}>
+          <ModalCard onClick={(e) => e.stopPropagation()}>
+            <ModalHeader>
+              <span>Customer Details — {selectedId}</span>
+              <CloseButton onClick={() => { setSelectedId(null); setDetail(null); }}>Close</CloseButton>
+            </ModalHeader>
+            <ModalBody>
+              {detailLoading && <div>Loading details…</div>}
+              {detailError && <div style={{ color: 'crimson' }}>{detailError}</div>}
+              {!detailLoading && !detailError && detail && (
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
+                  <div><strong>ID:</strong> {detail.customerId || detail.CustomerId}</div>
+                  <div><strong>Name:</strong> {detail.fullName || detail.FullName}</div>
+                  <div><strong>Gender:</strong> {(detail.gender || detail.Gender || '').toString() || '—'}</div>
+                  <div><strong>Email:</strong> {detail.email || detail.Email}</div>
+                  <div><strong>Phone:</strong> {detail.phone || detail.Phone}</div>
+                  <div><strong>CNIC:</strong> {detail.cnic || detail.Cnic}</div>
+                  <div><strong>Status:</strong> {detail.status || detail.Status}</div>
+                  <div><strong>City:</strong> {detail.city || detail.City}</div>
+                  <div><strong>Country:</strong> {detail.country || detail.Country}</div>
+                  <div><strong>Reg ID:</strong> {detail.regId || detail.RegId}</div>
+                  <div><strong>Plan ID:</strong> {detail.planId || detail.PlanId}</div>
+                  {/* Add more fields as needed, avoiding debug-only output */}
+                </div>
+              )}
+            </ModalBody>
+          </ModalCard>
+        </ModalBackdrop>
       )}
     </PageContainer>
   );
