@@ -1,0 +1,43 @@
+# changes made by secret etc
+
+name: 🚀 Deploy PMS Staging (Hostinger)
+
+on:
+  push:
+    branches: [ feature/pr-template ]
+  workflow_dispatch:
+
+jobs:
+  ftp-deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Verify structure
+        run: |
+          echo "🧩 Current working directory:"
+          pwd
+          ls -lah
+          ls -lah app || echo "⚠️ app folder not found, adjust local-dir accordingly"
+
+      - name: 🚀 FTP Deploy to staging
+        uses: SamKirkland/FTP-Deploy-Action@v4.3.4
+        with:
+          server: ${{ secrets.FTP_HOST }}
+          username: ${{ secrets.FTP_USERNAME }}
+          password: ${{ secrets.FTP_PASSWORD }}
+          protocol: ftps
+          port: 21
+          local-dir: ./                # or ./app/ if your files live inside /app
+          server-dir: public_html/stagingpms/  # target directory for the subdomain
+          log-level: verbose
+          exclude: |
+            **/.git*
+            **/.github/**
+            **/node_modules/**
+            **/.env*
+            **/README.md
+            **/.DS_Store
+            **/Thumbs.db
