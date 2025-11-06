@@ -3,7 +3,7 @@ import styled from 'styled-components';
 
 const TopBarContainer = styled.div`
   height: 60px;
-  background-color: ${props => props.theme.colors.secondary};
+  background-color: #f8fafc;
   display: flex;
   align-items: center;
   justify-content: flex-end;
@@ -13,6 +13,7 @@ const TopBarContainer = styled.div`
   left: 0;
   right: 0;
   z-index: 100;
+  border-bottom: 1px solid rgba(0, 35, 76, 0.06);
 `;
 
 const UserSection = styled.div`
@@ -34,14 +35,14 @@ const UserAvatar = styled.div`
 `;
 
 const UserName = styled.span`
-  color: white;
+  color: ${props => props.theme.colors.secondary};
   font-weight: 500;
 `;
 
 const NotificationBell = styled.button`
   background: none;
   border: none;
-  color: white;
+  color: ${props => props.theme.colors.secondary};
   font-size: 1.2rem;
   cursor: pointer;
   padding: 0.5rem;
@@ -53,9 +54,9 @@ const NotificationBell = styled.button`
 
 /**
  * TopBar
- * Purpose: Render the header at the top of the page.
+ * Purpose: Render the header at the top of the page with a near-white background for a lighter appearance.
  * Inputs: None.
- * Outputs: Header UI with notification, avatar, and user label.
+ * Outputs: Header UI with notification, avatar, and user label. Uses brand secondary for text and primary for accents.
  */
 const TopBar = () => {
   return (

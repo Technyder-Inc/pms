@@ -11,9 +11,9 @@ import {
   Calendar,
   Reports,
   Settings,
-  Customers,
   Login
 } from './pages';
+import ModuleRouter from './pages/ModuleRouter';
 
 function App() {
   return (
@@ -27,13 +27,15 @@ function App() {
             <Route index element={<Navigate to="/dashboard" replace />} />
           <Route path="dashboard" element={<Dashboard />} />
           <Route path="customers" element={<Navigate to="/customers/all-customers" replace />} />
-          <Route path="customers/:view" element={<Customers />} />
           <Route path="projects" element={<Projects />} />
             <Route path="tasks" element={<Tasks />} />
             <Route path="team" element={<Team />} />
             <Route path="calendar" element={<Calendar />} />
             <Route path="reports" element={<Reports />} />
             <Route path="settings" element={<Settings />} />
+            {/* Dynamic routes for new sidebar sections */}
+            <Route path=":module" element={<ModuleRouter />} />
+            <Route path=":module/:view" element={<ModuleRouter />} />
           </Route>
         </Routes>
       </Router>

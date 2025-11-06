@@ -57,6 +57,15 @@ pms/
 │   │   ├── components/    # Reusable UI components
 │   │   ├── layouts/       # Layout components (Sidebar, TopBar)
 │   │   ├── pages/         # Page components for each route
+│   │   │   ├── customers/  # Customers module pages
+│   │   │   ├── property/   # Property module pages
+│   │   │   ├── payments/   # Payments module pages
+│   │   │   ├── schedule/   # Schedule module pages
+│   │   │   ├── transfer/   # Transfer module pages
+│   │   │   ├── reports/    # Reports module pages
+│   │   │   ├── ai-automation/ # AI & Automation module pages
+│   │   │   ├── settings/   # Settings module pages
+│   │   │   └── compliance/ # Compliance module pages
 │   │   ├── styles/        # Global styles and theme
 │   │   └── utils/         # Utility functions and helpers
 │   ├── public/            # HTML template and public assets
@@ -102,7 +111,90 @@ Customize panels:
 - Removed the Overview/Highlights card (third header) from `src/layouts/Layout.js` to streamline the second row directly under the top header.
 
 ### Sidebar Width Update
-- Reduced the sidebar width from `280px` to `220px` to tighten the blue area and provide more space for main content.
+- Increased the sidebar width to `280px` for improved readability and consistent spacing with the brand.
+
+## 🏠 Home Page Layout (Two-Column)
+
+- First column: sidebar fills full height with no outer spacing.
+- Second column: top bar at the top; main content starts directly below.
+- Styling follows brand: primary `#dd9c6b`, secondary `#00234C`, font `Lexend`.
+
+Where to edit
+- `frontend/src/layouts/Layout.js` – defines the two-column grid and stacks `TopBar` above content in column two.
+- `frontend/src/layouts/Sidebar.js` – ensures full-height sidebar and removes extra gaps/margins.
+- `frontend/src/styles/GlobalStyles.js` – contains brand theme and global font.
+
+How to verify
+- Start frontend: `cd pms/frontend && $env:PORT=3001; npm start`.
+- Open `http://localhost:3001/dashboard`.
+- Confirm: sidebar is flush to edges (no spacing), top bar sits above content, and content begins immediately below the top bar.
+- Top bar background is near-white (`#f8fafc`) with text/icons in brand secondary (`#00234C`).
+
+Notes
+- The layout uses CSS grid to guarantee the sidebar spans full viewport height.
+- If you need a compact header, adjust `TopBar` height and padding in its component.
+
+## 📋 Sidebar Navigation (Updated)
+
+- Groups: adds branded modules with emoji labels and Lexend font.
+- Customers section includes three sublinks that retain context when navigating:
+  - `All Customers` → `http://localhost:3001/customers/all-customers`
+  - `Active Customers` → `http://localhost:3001/customers/active-customers`
+  - `Blocked Customers` → `http://localhost:3001/customers/blocked-customers`
+- The Customers group auto-expands whenever the current route starts with `/customers`.
+- Active link styling uses brand primary `#dd9c6b` on a secondary `#00234C` background.
+
+Where to edit
+- `frontend/src/layouts/Sidebar.js` – module config and rendering logic.
+- `frontend/src/components/CustomersGrid.js` – reusable grid with filters, pagination, and detail modal.
+- `frontend/src/pages/customers/AllCustomers.js` | `ActiveCustomers.js` | `BlockedCustomers.js` – wrappers for specific customer views using `CustomersGrid`.
+- `frontend/src/App.js` – route definitions (module routes) and `ModuleRouter` integration.
+
+Implementation details
+- Sidebar modules are defined as objects with `label`, `slug`, and `sublinks`.
+- Each sublink uses `{ label, path }` for predictable routes.
+- The module header uses collapse/expand behavior and stays open while inside its route.
+
+Quick verification
+- Start frontend and open `http://localhost:3001/customers/all-customers`.
+- Confirm the Customers section is expanded and the active sublink is highlighted.
+- Switch to `Active Customers` and `Blocked Customers`; the grid updates accordingly.
+
+## 📚 Sidebar Navigation (Expanded)
+
+- The sidebar now reflects the full structure requested, grouped by modules with branded emoji labels and Lexend font.
+- New groups and sub-links:
+  - `🏠 DASHBOARD`: Home Overview
+  - `📋 CUSTOMERS`: All Customers, Active Customers, Blocked Customers, Member Directory, Member Segments, Member Import/Bulk Actions
+  - `🏘️ PROPERTY`: Projects, Inventory Status, Price Management, Availability Matrix
+  - `💳 PAYMENTS`: Collections, Dues & Defaulters, Waivers & Adjustments, NDC Management, Refunds, Financial Ledger
+  - `📅 SCHEDULE`: Bookings, Holds Management, Possession, Booking Approvals, Payment Schedule Editor
+  - `🔄 TRANSFER`: Transfer Requests, Transfer Approvals
+  - `📊 REPORTS`: Sales Analytics, Collections Analytics, Dues Analysis, Possession Status, Transfer Summary, Custom Reports
+  - `🤖 AI & AUTOMATION (NEW)`: Lead Scoring, Collection Prediction, Anomaly Detection, Automated Reminders, Smart Recommendations, Audit Trail (AI Actions)
+  - `⚙️ SETTINGS`: Company Settings, Business Rules, Payment Configuration, Notification Rules, Users & Roles, Approval Workflows, System Configuration, Compliance Configuration (NEW)
+  - `🔐 COMPLIANCE`: Audit Trail, Approval Queue, Compliance Events, Data Management, Risk Assessment, Policy Monitoring, Compliance Reports
+  - `📞 SUPPORT & HELP`: Documentation, FAQs, Contact Support, System Status
+
+Routing behavior
+- All module links route to `/:module/:view` and resolve via `ModuleRouter`.
+- `ModuleRouter` lazily loads `frontend/src/pages/<module>/<Page>.js` for each sub-link.
+- If a page isn’t implemented yet, a small branded placeholder is shown.
+- The `customers/:view` route is handled by `ModuleRouter` and uses folder-based pages (`AllCustomers`, `ActiveCustomers`, `BlockedCustomers`) built on `CustomersGrid`.
+
+Where to edit
+- `frontend/src/layouts/Sidebar.js` – Full module and sublink configuration.
+- `frontend/src/pages/ModuleRouter.js` – Central mapping from `module → view → component`.
+- `frontend/src/pages/<module>/<Page>.js` – Individual page components per sub-link.
+- `frontend/src/App.js` – Uses `ModuleRouter` for `:module` and `:module/:view` routes.
+
+Quick verification (dev server)
+- Start frontend: `cd pms/frontend && $env:PORT=3003; npm start`
+- Open `http://localhost:3003/dashboard` → confirm the main shell renders.
+- Open `http://localhost:3003/customers/all-customers` → customers folder page renders.
+- Open `http://localhost:3003/ai-automation/lead-scoring` → AI page renders.
+- Open `http://localhost:3003/compliance/audit-trail` → compliance page renders.
+- Open `http://localhost:3003/settings/payment-configuration` → settings page renders.
 
 ## 🌐 API Endpoints
 
@@ -481,6 +573,42 @@ For technical support or questions, please contact the development team.
 - Styling follows brand: header uses `#dd9c6b`, content in `Lexend`.
 - Close the modal by clicking outside or using the `Close` button.
 
+### CustomersGrid Component
+
+- Location: `frontend/src/components/CustomersGrid.js`
+- Purpose: A reusable, branded grid for customers that supports server-side pagination and filtering (status, allotment), plus an on-demand detail modal.
+- Props:
+  - `title` (string): Heading text for the page (e.g., `"Customers: All Customers"`).
+  - `defaultFilter` ("All" | "Active" | "Blocked"): Initial view filter applied on load.
+- Usage:
+  ```jsx
+  import CustomersGrid from '../../components/CustomersGrid';
+
+  export default function AllCustomers() {
+    return <CustomersGrid title="Customers: All Customers" defaultFilter="All" />;
+  }
+  ```
+- Server-side request format: `GET /api/Customers?page=<n>&pageSize=<m>&status=<Active|Blocked>&allotmentstatus=<Allotted|Not Allotted|Pending>`.
+- Auth: Requests include `Authorization: Bearer <jwt>` if `localStorage.jwt` is set (via `fetchJson`).
+
+### MVP vs Enterprise Approaches
+
+- MVP (current):
+  - Server-side pagination and basic filtering via query params.
+  - Client-side fallback filtering to keep UI consistent if API ignores filters.
+  - Simple modal detail fetch on double-click.
+- Enterprise-grade (recommended for scale):
+  - Virtualized rows (e.g., `react-window`) for large lists.
+  - Debounced filter inputs and server-side search/sort endpoints.
+  - Cache list and detail responses (e.g., React Query) with background revalidation.
+  - Role-based column visibility and export (CSV/XLSX) with streaming.
+
+### Best Practices
+- Performance: paginate and virtualize long lists; avoid rendering offscreen rows.
+- Maintainability: centralize API calls (`frontend/src/utils/api.js`) and keep grid generic.
+- Security: send JWT via `Authorization` header; never store secrets in source.
+- UX: consistent branding (`Lexend`, `#dd9c6b` primary, `#00234C` secondary) and compact controls.
+
 ### Frontend Implementation Notes
 - Added `getCustomer(id)` in `frontend/src/utils/api.js`.
 - Added `onDoubleClick` on table rows in `frontend/src/pages/Customers.js`.
@@ -528,3 +656,29 @@ For technical support or questions, please contact the development team.
   - 500 Internal Server Error: backend issue (see `AuthController` logs).
   - CORS preflight failing: confirm origin is `localhost:3000` and backend is running.
 - The frontend now stores auth robustly even if the backend returns PascalCase keys.
+
+## 🌐 CORS for Multiple Frontend Ports (Updated)
+
+- If you run the frontend on ports other than `3000`/`3001` (e.g., `3003`, `3007`, `3008`), add them to the backend CORS policy in `backend/PMS_APIs/Program.cs`:
+
+  ```csharp
+  builder.Services.AddCors(options =>
+  {
+      options.AddPolicy("ReactApp", policy =>
+      {
+          policy.WithOrigins(
+              "http://localhost:3000",
+              "http://localhost:3001",
+              "http://localhost:3003",
+              "http://localhost:3007",
+              "http://localhost:3008"
+          )
+          .AllowAnyHeader()
+          .AllowAnyMethod()
+          .AllowCredentials();
+      });
+  });
+  ```
+
+- Restart the API after changes: `cd pms/backend/PMS_APIs && dotnet run`.
+- Frontend uses `REACT_APP_API_URL` if set; otherwise defaults to `http://localhost:5296`.
