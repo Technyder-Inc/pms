@@ -33,7 +33,7 @@ jobs:
           protocol: ftps
           port: 21
           local-dir: build/
-          server-dir: public_html/stagingpms/
+          server-dir: stagingpms/
           log-level: verbose
           exclude: |
             */.git
