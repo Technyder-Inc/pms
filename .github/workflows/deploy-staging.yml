@@ -17,11 +17,16 @@ jobs:
         with:
           node-version: 18
 
+      # 👇 All npm commands will now run inside the frontend directory
       - name: Install dependencies
-        run: npm install
+        run: |
+          cd frontend
+          npm install
 
       - name: Build React app
-        run: npm run build
+        run: |
+          cd frontend
+          npm run build
 
       - name: 🚀 FTP Deploy to staging
         uses: SamKirkland/FTP-Deploy-Action@v4.3.4
@@ -31,8 +36,9 @@ jobs:
           password: ${{ secrets.FTP_PASSWORD }}
           protocol: ftps
           port: 21
-          local-dir: build/
-          server-dir: stagingpms/
+          # 👇 Points to the frontend build output
+          local-dir: frontend/build/
+          server-dir: public_html/stagingpms/
           log-level: verbose
           exclude: |
             **/.git*
