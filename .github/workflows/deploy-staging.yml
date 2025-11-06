@@ -38,7 +38,7 @@ jobs:
           port: 21
           # 👇 Points to the frontend build output
           local-dir: frontend/build/
-          server-dir: public_html/stagingpms/
+          server-dir: stagingpms/
           log-level: verbose
           exclude: |
             **/.git*
