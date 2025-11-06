@@ -8,10 +8,8 @@ on:
 jobs:
   ftp-deploy:
     runs-on: ubuntu-latest
-
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
       - name: Set up Node
         uses: actions/setup-node@v4
@@ -33,9 +31,9 @@ jobs:
           protocol: ftps
           port: 21
           local-dir: build/
-          server-dir: stagingpms/
+          server-dir: public_html/stagingpms/
           log-level: verbose
           exclude: |
-            */.git
-            */.github/*
-            */node_modules/*
+            **/.git*
+            **/.github/**
+            **/node_modules/**
