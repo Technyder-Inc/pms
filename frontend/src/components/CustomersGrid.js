@@ -58,10 +58,11 @@ const Table = styled.table`
 
 const Th = styled.th`
   text-align: left;
-  padding: 0.75rem;
-  background: ${props => props.theme.colors.secondary};
-  color: white;
+  padding: 0.65rem 0.75rem;
+  background: ${props => props.theme.colors.lightGray};
+  color: ${props => props.theme.colors.secondary};
   font-weight: 600;
+  font-size: 0.95rem; /* slightly lesser for compact header */
 `;
 
 const Td = styled.td`

@@ -15,7 +15,12 @@ export default function Login() {
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-
+  /**
+   * handleSubmit
+   * Purpose: Submit the login form using email (password optional).
+   * Inputs: Form event; reads `email` and `password` state.
+   * Outputs: Navigates to `/dashboard` on success; shows error on failure.
+   */
   async function handleSubmit(e) {
     e.preventDefault();
     setError('');
@@ -53,7 +58,7 @@ export default function Login() {
             placeholder="••••••"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
-            required
+            
           />
           <Button type="submit" disabled={loading}>
             {loading ? 'Signing in…' : 'Sign In'}

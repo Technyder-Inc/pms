@@ -2,6 +2,20 @@ import React, { useEffect, useMemo, useState } from 'react';
 import styled from 'styled-components';
 import { NavLink, useLocation } from 'react-router-dom';
 import { IoChevronDown, IoChevronForward } from 'react-icons/io5';
+import {
+  FiHome,
+  FiUsers,
+  FiLayers,
+  FiCreditCard,
+  FiCalendar,
+  FiRepeat,
+  FiBarChart2,
+  FiCpu,
+  FiSettings,
+  FiShield,
+  FiHelpCircle,
+  FiChevronLeft,
+} from 'react-icons/fi';
 
 const SidebarContainer = styled.div`
   width: 280px; /* widened sidebar for improved readability */
@@ -11,6 +25,8 @@ const SidebarContainer = styled.div`
   padding: 1.25rem 1rem; /* inner padding for readability */
   border-radius: 0; /* no rounded edges; flush layout */
   font-family: 'Lexend', sans-serif;
+  overflow-y: auto; /* allow scrolling so bottom links are visible */
+  overscroll-behavior: contain; /* prevent scroll chaining */
 `;
 
 const Logo = styled.div`
@@ -20,13 +36,35 @@ const Logo = styled.div`
   color: ${props => props.theme.colors.primary};
 `;
 
+const ToggleRow = styled.div`
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: 0.75rem;
+`;
+
+const ToggleButton = styled.button`
+  background: transparent;
+  color: ${p => p.theme.colors.primary};
+  border: 1px solid ${p => p.theme.colors.primary};
+  border-radius: 6px;
+  width: 28px;
+  height: 28px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  font-family: 'Lexend', sans-serif;
+  transition: all 0.15s ease-in-out;
+  &:hover { background: ${p => p.theme.colors.primary}; color: #fff; }
+`;
+
 const NavList = styled.ul`
   list-style: none;
   padding: 0;
 `;
 
 const NavItem = styled.li`
-  margin-bottom: 0.5rem;
+  margin-bottom: 0.25rem; /* tighter gap between links */
 `;
 
 const ModuleHeader = styled.div.withConfig({
@@ -50,31 +88,46 @@ const ModuleHeader = styled.div.withConfig({
   `}
 `;
 
+const HeaderLeft = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  & > span { font-size: 0.8rem; }
+`;
+
+const IconBox = styled.span`
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: #ffffff; /* icon color to white as requested */
+`;
+
 const SubMenu = styled.ul.withConfig({
   shouldForwardProp: (prop) => !['isOpen'].includes(prop),
 })`
   list-style: none;
-  padding-left: 1.5rem;
-  margin-top: 0.5rem;
+  padding-left: 1rem; /* slightly reduced indent */
+  margin-top: 0.25rem; /* tighter spacing above submenu */
   display: ${props => props.isOpen ? 'block' : 'none'};
 `;
 
 const StyledNavLink = styled(NavLink)`
   color: white;
   text-decoration: none;
-  padding: 0.5rem 1rem;
+  padding: 0.4rem 0.75rem; /* restored padding */
   display: block;
   border-radius: 4px;
-  font-size: 0.85rem; /* slightly reduced link font size */
+  font-size: 0.83rem; /* restored sublink font size */
 
   &:hover {
-    background-color: rgba(255, 255, 255, 0.1);
+    background-color: rgba(221, 156, 107, 0.12); /* brand primary tint */
     text-decoration: none;
   }
 
   &.active {
-    background-color: ${props => props.theme.colors.primary};
-    color: white;
+    background-color: rgba(221, 156, 107, 0.18); /* subtle active background */
+    color: ${props => props.theme.colors.primary}; /* brand-matching active text */
+    border-left: 3px solid ${props => props.theme.colors.primary}; /* active accent */
   }
 `;
 
@@ -82,12 +135,13 @@ const StyledNavLink = styled(NavLink)`
  * ModuleItem
  * Purpose: Render a top-level sidebar module with collapsible sublinks.
  * Inputs:
- *  - label: display string (e.g., '📋 CUSTOMERS')
+ *  - label: display string (e.g., 'CUSTOMERS')
  *  - slug: base path for routing (e.g., 'customers')
  *  - sublinks: array of { label, path } items
+ *  - icon: React component for vector icon (e.g., FiUsers)
  * Outputs: Collapsible section with NavLink items; auto-opens when the current route is within the module.
  */
-const ModuleItem = ({ label, slug, sublinks }) => {
+const ModuleItem = ({ label, slug, sublinks, icon: Icon }) => {
   const location = useLocation();
   const isInModule = useMemo(() => location.pathname.startsWith(`/${slug}`), [location.pathname, slug]);
   const [isOpen, setIsOpen] = useState(isInModule);
@@ -100,7 +154,14 @@ const ModuleItem = ({ label, slug, sublinks }) => {
   return (
     <NavItem>
       <ModuleHeader onClick={() => setIsOpen(!isOpen)} isActive={isOpen}>
-        <span>{label}</span>
+        <HeaderLeft>
+          {Icon && (
+            <IconBox>
+              <Icon size={18} />
+            </IconBox>
+          )}
+          <span>{label}</span>
+        </HeaderLeft>
         {isOpen ? <IoChevronDown /> : <IoChevronForward />}
       </ModuleHeader>
       <SubMenu isOpen={isOpen}>
@@ -119,21 +180,24 @@ const ModuleItem = ({ label, slug, sublinks }) => {
 /**
  * Sidebar
  * Purpose: Render the side links bar with module navigation aligned to PMS.
- * Inputs: None.
+ * Inputs:
+ *  - onToggleLinksBar: function to hide/unhide the links bar
  * Outputs: Sidebar navigation with groups and branded styling.
  */
-const Sidebar = () => {
+const Sidebar = ({ onToggleLinksBar }) => {
   const modules = [
     {
-      label: '🏠 DASHBOARD',
+      label: 'DASHBOARD',
       slug: 'dashboard',
+      icon: FiHome,
       sublinks: [
         { label: 'Home Overview', path: '' },
       ],
     },
     {
-      label: '📋 CUSTOMERS',
+      label: 'CUSTOMERS',
       slug: 'customers',
+      icon: FiUsers,
       sublinks: [
         { label: 'All Customers', path: 'all-customers' },
         { label: 'Active Customers', path: 'active-customers' },
@@ -144,8 +208,9 @@ const Sidebar = () => {
       ],
     },
     {
-      label: '🏘️ PROPERTY',
+      label: 'PROPERTY',
       slug: 'property',
+      icon: FiLayers,
       sublinks: [
         { label: 'Projects', path: 'projects' },
         { label: 'Inventory Status', path: 'inventory-status' },
@@ -154,8 +219,9 @@ const Sidebar = () => {
       ],
     },
     {
-      label: '💳 PAYMENTS',
+      label: 'PAYMENTS',
       slug: 'payments',
+      icon: FiCreditCard,
       sublinks: [
         { label: 'Collections', path: 'collections' },
         { label: 'Dues & Defaulters', path: 'dues-defaulters' },
@@ -166,8 +232,9 @@ const Sidebar = () => {
       ],
     },
     {
-      label: '📅 SCHEDULE',
+      label: 'SCHEDULE',
       slug: 'schedule',
+      icon: FiCalendar,
       sublinks: [
         { label: 'Bookings', path: 'bookings' },
         { label: 'Holds Management', path: 'holds-management' },
@@ -177,16 +244,18 @@ const Sidebar = () => {
       ],
     },
     {
-      label: '🔄 TRANSFER',
+      label: 'TRANSFER',
       slug: 'transfer',
+      icon: FiRepeat,
       sublinks: [
         { label: 'Transfer Requests', path: 'transfer-requests' },
         { label: 'Transfer Approvals', path: 'transfer-approvals' },
       ],
     },
     {
-      label: '📊 REPORTS',
+      label: 'REPORTS',
       slug: 'reports',
+      icon: FiBarChart2,
       sublinks: [
         { label: 'Sales Analytics', path: 'sales-analytics' },
         { label: 'Collections Analytics', path: 'collections-analytics' },
@@ -197,8 +266,9 @@ const Sidebar = () => {
       ],
     },
     {
-      label: '🤖 AI & AUTOMATION (NEW)',
+      label: 'AI & AUTOMATION (NEW)',
       slug: 'ai-automation',
+      icon: FiCpu,
       sublinks: [
         { label: 'Lead Scoring', path: 'lead-scoring' },
         { label: 'Collection Prediction', path: 'collection-prediction' },
@@ -209,8 +279,9 @@ const Sidebar = () => {
       ],
     },
     {
-      label: '⚙️ SETTINGS',
+      label: 'SETTINGS',
       slug: 'settings',
+      icon: FiSettings,
       sublinks: [
         { label: 'Company Settings', path: 'company-settings' },
         { label: 'Business Rules', path: 'business-rules' },
@@ -223,8 +294,9 @@ const Sidebar = () => {
       ],
     },
     {
-      label: '🔐 COMPLIANCE',
+      label: 'COMPLIANCE',
       slug: 'compliance',
+      icon: FiShield,
       sublinks: [
         { label: 'Audit Trail', path: 'audit-trail' },
         { label: 'Approval Queue', path: 'approval-queue' },
@@ -236,8 +308,9 @@ const Sidebar = () => {
       ],
     },
     {
-      label: '📞 SUPPORT & HELP',
+      label: 'SUPPORT & HELP',
       slug: 'support',
+      icon: FiHelpCircle,
       sublinks: [
         { label: 'Documentation', path: 'documentation' },
         { label: 'FAQs', path: 'faqs' },
@@ -249,6 +322,11 @@ const Sidebar = () => {
 
   return (
     <SidebarContainer>
+      <ToggleRow>
+        <ToggleButton aria-label="Close sidebar" title="Close sidebar" onClick={onToggleLinksBar}>
+          <FiChevronLeft size={16} />
+        </ToggleButton>
+      </ToggleRow>
       <Logo>PMS</Logo>
       <NavList>
         {modules.map((m, index) => (
@@ -256,6 +334,7 @@ const Sidebar = () => {
             key={index}
             label={m.label}
             slug={m.slug}
+            icon={m.icon}
             sublinks={m.sublinks}
           />
         ))}

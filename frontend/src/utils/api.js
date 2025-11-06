@@ -77,20 +77,24 @@ export async function getCustomer(id) {
 
 /**
  * login
- * Purpose: Authenticate a user with email and password, store JWT.
+ * Purpose: Authenticate a user using email (password optional), then store JWT.
  * Inputs:
- *  - email: string user email
- *  - password: string user password
+ *  - email: string user email (required)
+ *  - password: string user password (optional; included if provided)
  * Outputs:
  *  - Returns the login response { token, expiresAt, user }
  *  - Side effect: stores `jwt`, `jwt_expires`, and `user` in localStorage
  */
 export async function login(email, password) {
-  if (!email || !password) throw new Error('Email and password are required');
+  if (!email) throw new Error('Email is required');
+  const trimmedEmail = String(email).trim();
+  const trimmedPassword = typeof password === 'string' ? String(password).trim() : '';
+  const payload = trimmedPassword ? { email: trimmedEmail, password: trimmedPassword } : { email: trimmedEmail };
+
   const res = await fetchJson('/api/Auth/login', {
     method: 'POST',
     // Normalize to avoid whitespace/casing mismatch with backend
-    body: JSON.stringify({ email: String(email).trim(), password: String(password).trim() }),
+    body: JSON.stringify(payload),
   });
 
   // Persist auth (robust to different JSON casing)
