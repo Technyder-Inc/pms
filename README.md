@@ -326,6 +326,27 @@ $token = "your-jwt-token-here"
 Invoke-WebRequest -Uri "http://localhost:5296/api/Auth/USR0000001/status" -Method PATCH -ContentType "application/json" -Body 'false' -Headers @{"Authorization" = "Bearer $token"}
 ```
 
+### Legacy Plaintext Passwords (Login Compatibility)
+
+Some databases store passwords as plaintext (e.g., `1234`) instead of hashes.
+The login endpoint supports these scenarios and will auto-upgrade on success:
+
+- If `users.password_hash` contains the literal plaintext, login succeeds and the backend upgrades it to a hash.
+- If a legacy `users.password` column exists with plaintext, the backend will detect it, accept the login, and write the hash to `password_hash`.
+
+Troubleshooting a `401: Invalid email or password`:
+- Ensure the user exists and `is_active = TRUE`.
+- Normalize email (lowercase, no spaces) and password (trim spaces).
+- If only a `password` column exists, set `password_hash` to the literal password once to trigger auto-upgrade on next login:
+
+```sql
+UPDATE users
+SET password_hash = '1234', is_active = TRUE
+WHERE LOWER(email) = 'fatima.noor@example.com';
+```
+
+- Clear browser storage (`localStorage`: `jwt`, `jwt_expires`, `user`) and retry.
+
 ### Additional Endpoints
 - Allotments, Payments, Penalties, Waivers, Refunds, Transfers, NDCs, Possessions, Registrations
 
@@ -657,6 +678,58 @@ For technical support or questions, please contact the development team.
   - CORS preflight failing: confirm origin is `localhost:3000` and backend is running.
 - The frontend now stores auth robustly even if the backend returns PascalCase keys.
 
+### Login Normalization & Common 401 Causes (Updated)
+
+- Backend login explicitly allows anonymous: `AuthController.Login` has `[AllowAnonymous]` so it is reachable without a token.
+- Inputs are normalized to avoid whitespace/casing issues:
+  - Email: `trim().toLowerCase()` before lookup
+  - Password: `trim()` before verification
+- Frontend `fetchJson` no longer sends `Authorization` for `/api/Auth/login` and `/api/Auth/register`, preventing stale/invalid JWTs from interfering with auth.
+- Frontend `login(email, password)` trims both values before sending.
+
+If you still get 401 for a specific user:
+- Confirm the user exists and is active:
+  - Log in with a working account, then call `GET /api/Auth` with your JWT to inspect `isActive`.
+- Ensure the stored password was created by the API’s registration flow.
+  - Records inserted manually or hashed with a different algorithm/salt won’t verify.
+  - Quick fix: update the user’s password via `register` endpoint (unique email required) or implement an admin reset.
+- Watch for trailing spaces in the password; trimming fixes most input mismatch issues.
+
+Example re-test (PowerShell):
+```powershell
+Invoke-WebRequest -Uri "http://localhost:5296/api/Auth/login" -Method POST -ContentType "application/json" -Body '{"email":"second.user@example.com","password":"1234"}'
+```
+
+Best practices:
+- Prefer BCrypt for hashing per-user with unique salts (production).
+- Auto-migrate legacy plaintext passwords on successful login (already supported).
+- Add a password reset flow and admin deactivation/activation tools.
+
+## 🔒 Route Protection (Login Required)
+
+- All application pages (dashboard, customers, modules, settings, etc.) are protected behind an auth guard.
+- Unauthenticated users are redirected to `http://localhost:3007/login`.
+- The guard checks for a JWT in `localStorage.jwt` and preserves the intended path (for post-login redirect).
+
+Where to edit
+- `frontend/src/components/RequireAuth.js` – route guard component.
+- `frontend/src/App.js` – wraps protected routes with `RequireAuth` and defaults index to `/login`.
+
+How it works
+- `RequireAuth` uses React Router’s `<Outlet />` for nested protected routes.
+- If `localStorage.jwt` is missing, it returns `<Navigate to="/login" state={{ from: location }} replace />`.
+- On successful login, navigate back to `state.from` or a default route (e.g., `/dashboard`).
+
+Quick verification
+- Clear token: open DevTools → Application → Local Storage → remove `jwt`.
+- Visit `http://localhost:3007/customers/all-customers` → you should be redirected to `/login`.
+- Log in → you should navigate to Dashboard or back to the original page.
+
+Best practices
+- Decode JWT and check expiry; auto-logout when expired.
+- Persist session securely; avoid storing sensitive user info in localStorage.
+- Use role-based route guards for admin-only sections.
+
 ## 🌐 CORS for Multiple Frontend Ports (Updated)
 
 - If you run the frontend on ports other than `3000`/`3001` (e.g., `3003`, `3007`, `3008`), add them to the backend CORS policy in `backend/PMS_APIs/Program.cs`:
@@ -682,3 +755,20 @@ For technical support or questions, please contact the development team.
 
 - Restart the API after changes: `cd pms/backend/PMS_APIs && dotnet run`.
 - Frontend uses `REACT_APP_API_URL` if set; otherwise defaults to `http://localhost:5296`.
+### Top Bar: User Name & Logout (New)
+- Displays the logged-in user’s name: `Logged in as: <Fullname>`.
+- Shows initials avatar derived from the name.
+- Adds a `Logout` button that clears auth and redirects to `/login`.
+
+Where to edit
+- `frontend/src/layouts/TopBar.js` – reads `localStorage.user` and renders fullname; adds logout.
+- `frontend/src/utils/api.js` – login persists `{ token, expiresAt, user }` to `localStorage`.
+
+Backend expectations
+- Login response should include a `user` object with a `fullname` field (or `fullName`/`Fullname`).
+- The frontend gracefully falls back to `name` or `firstName + lastName` if `fullname` is missing.
+
+Quick verification
+- Log in at `http://localhost:3007/login`.
+- Open `http://localhost:3007/dashboard` or `http://localhost:3007/customers/all-customers`.
+- Confirm the top bar shows your name and the `Logout` button works.

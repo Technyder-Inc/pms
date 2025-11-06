@@ -9,6 +9,7 @@ using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Security.Cryptography;
 using System.Text;
+using System.Data;
 
 namespace PMS_APIs.Controllers
 {
@@ -35,6 +36,7 @@ namespace PMS_APIs.Controllers
         /// <param name="loginRequest">Login credentials containing email and password</param>
         /// <returns>JWT token and user information if authentication is successful</returns>
         [HttpPost("login")]
+        [AllowAnonymous]
         public async Task<ActionResult<LoginResponseDto>> Login([FromBody] LoginRequestDto loginRequest)
         {
             try
@@ -45,24 +47,46 @@ namespace PMS_APIs.Controllers
                     return BadRequest(new { message = "Invalid input data", errors = ModelState });
                 }
 
+                // Normalize inputs to avoid whitespace/casing issues
+                var normalizedEmail = (loginRequest.Email ?? string.Empty).Trim().ToLower();
+                var normalizedPassword = (loginRequest.Password ?? string.Empty).Trim();
+
                 // Find user by email
                 var user = await _context.Users
-                    .FirstOrDefaultAsync(u => u.Email.ToLower() == loginRequest.Email.ToLower());
+                    .FirstOrDefaultAsync(u => u.Email.ToLower() == normalizedEmail);
 
                 if (user == null || !user.IsActive)
                 {
                     return Unauthorized(new { message = "Invalid email or password" });
                 }
 
-                // Verify password (supports legacy plaintext stored hashes)
-                bool verified = VerifyPassword(loginRequest.Password, user.PasswordHash);
-                if (!verified)
+                // Verify password with support for legacy plaintext storage
+                // 1) If a hash exists, verify against it
+                // 2) If hash comparison fails, accept if stored value is plaintext and matches
+                // 3) If no hash is present, try reading legacy `password` column and upgrade
+                var storedHash = user.PasswordHash ?? string.Empty;
+                bool verified = false;
+
+                if (!string.IsNullOrWhiteSpace(storedHash))
                 {
-                    // Legacy fallback: if the stored value is plaintext and matches input,
-                    // accept and upgrade to hashed on the fly.
-                    if (loginRequest.Password == user.PasswordHash)
+                    // Attempt hash verification
+                    verified = VerifyPassword(normalizedPassword, storedHash);
+
+                    // Plaintext fallback: some databases may have stored literal passwords in `password_hash`
+                    if (!verified && normalizedPassword == storedHash)
                     {
-                        user.PasswordHash = HashPassword(loginRequest.Password);
+                        user.PasswordHash = HashPassword(normalizedPassword);
+                        await _context.SaveChangesAsync();
+                        verified = true;
+                    }
+                }
+                else
+                {
+                    // Legacy schema: try to read a `password` column if present and plaintext
+                    var legacyPlain = await TryGetLegacyPlainPassword(user.UserId);
+                    if (!string.IsNullOrEmpty(legacyPlain) && normalizedPassword == legacyPlain)
+                    {
+                        user.PasswordHash = HashPassword(normalizedPassword);
                         await _context.SaveChangesAsync();
                         verified = true;
                     }
@@ -374,6 +398,39 @@ namespace PMS_APIs.Controllers
         {
             var computedHash = HashPassword(password);
             return computedHash == hash;
+        }
+
+        /// <summary>
+        /// Attempts to read a legacy plaintext password from the `users` table.
+        /// Purpose: Support environments where passwords were stored in a `password` column as plain text.
+        /// Inputs: userId - string user identifier
+        /// Outputs: Plaintext password if available; otherwise null
+        /// </summary>
+        private async Task<string?> TryGetLegacyPlainPassword(string userId)
+        {
+            try
+            {
+                var conn = _context.Database.GetDbConnection();
+                await conn.OpenAsync();
+                using var cmd = conn.CreateCommand();
+                cmd.CommandText = "SELECT password FROM users WHERE user_id = @id LIMIT 1";
+
+                var p = cmd.CreateParameter();
+                p.ParameterName = "@id";
+                p.Value = userId;
+                cmd.Parameters.Add(p);
+
+                var result = await cmd.ExecuteScalarAsync();
+                await conn.CloseAsync();
+
+                if (result == null || result == DBNull.Value) return null;
+                return Convert.ToString(result);
+            }
+            catch
+            {
+                // If the column doesn't exist or any error occurs, treat as not available
+                return null;
+            }
         }
 
         /// <summary>

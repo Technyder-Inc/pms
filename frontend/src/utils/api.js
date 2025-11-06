@@ -16,9 +16,11 @@ export async function fetchJson(path, options = {}) {
     ...(options.headers || {}),
   };
 
-  // Attach JWT from localStorage if present
+  // Attach JWT from localStorage if present, except for auth endpoints
   const token = localStorage.getItem('jwt');
-  if (token && !headers.Authorization) {
+  const lowerPath = String(path || '').toLowerCase();
+  const isAuthEndpoint = lowerPath.includes('/api/auth/login') || lowerPath.includes('/api/auth/register');
+  if (token && !headers.Authorization && !isAuthEndpoint) {
     headers.Authorization = `Bearer ${token}`;
   }
 
@@ -87,7 +89,8 @@ export async function login(email, password) {
   if (!email || !password) throw new Error('Email and password are required');
   const res = await fetchJson('/api/Auth/login', {
     method: 'POST',
-    body: JSON.stringify({ email, password }),
+    // Normalize to avoid whitespace/casing mismatch with backend
+    body: JSON.stringify({ email: String(email).trim(), password: String(password).trim() }),
   });
 
   // Persist auth (robust to different JSON casing)

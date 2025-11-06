@@ -14,6 +14,7 @@ import {
   Login
 } from './pages';
 import ModuleRouter from './pages/ModuleRouter';
+import RequireAuth from './components/RequireAuth';
 
 function App() {
   return (
@@ -24,18 +25,22 @@ function App() {
           {/* Public routes */}
           <Route path="/login" element={<Login />} />
           <Route path="/" element={<Layout />}>
-            <Route index element={<Navigate to="/dashboard" replace />} />
-          <Route path="dashboard" element={<Dashboard />} />
-          <Route path="customers" element={<Navigate to="/customers/all-customers" replace />} />
-          <Route path="projects" element={<Projects />} />
-            <Route path="tasks" element={<Tasks />} />
-            <Route path="team" element={<Team />} />
-            <Route path="calendar" element={<Calendar />} />
-            <Route path="reports" element={<Reports />} />
-            <Route path="settings" element={<Settings />} />
-            {/* Dynamic routes for new sidebar sections */}
-            <Route path=":module" element={<ModuleRouter />} />
-            <Route path=":module/:view" element={<ModuleRouter />} />
+            {/* Default start at login */}
+            <Route index element={<Navigate to="/login" replace />} />
+            {/* Protected application routes */}
+            <Route element={<RequireAuth />}>
+              <Route path="dashboard" element={<Dashboard />} />
+              <Route path="customers" element={<Navigate to="/customers/all-customers" replace />} />
+              <Route path="projects" element={<Projects />} />
+              <Route path="tasks" element={<Tasks />} />
+              <Route path="team" element={<Team />} />
+              <Route path="calendar" element={<Calendar />} />
+              <Route path="reports" element={<Reports />} />
+              <Route path="settings" element={<Settings />} />
+              {/* Dynamic routes for new sidebar sections */}
+              <Route path=":module" element={<ModuleRouter />} />
+              <Route path=":module/:view" element={<ModuleRouter />} />
+            </Route>
           </Route>
         </Routes>
       </Router>
