@@ -13,7 +13,7 @@ This project consists of two main components:
 ### Frontend Features
 - Modern, responsive UI with brand styling
 - Comprehensive property management modules
-- Customer management and tracking
+- Customer management and trackings
 - Payment plan management
 - Property allotment and transfer system
 - Interactive dashboards and reports
