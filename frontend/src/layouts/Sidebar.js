@@ -15,18 +15,24 @@ import {
   FiShield,
   FiHelpCircle,
   FiChevronLeft,
+  FiChevronRight,
 } from 'react-icons/fi';
 
-const SidebarContainer = styled.div`
-  width: 280px; /* widened sidebar for improved readability */
+const SidebarContainer = styled.div.withConfig({
+  shouldForwardProp: (prop) => !['$collapsed'].includes(prop),
+})`
+  width: 100%; /* fill grid column (280px expanded, 64px collapsed) */
   height: 100vh; /* stretch fully with no extra spacing around */
   background-color: ${props => props.theme.colors.secondary};
   color: white;
-  padding: 1.25rem 1rem; /* inner padding for readability */
+  padding: ${p => p.$collapsed ? '0.75rem 0.5rem' : '1.25rem 1rem'}; /* tighter padding when collapsed */
   border-radius: 0; /* no rounded edges; flush layout */
   font-family: 'Lexend', sans-serif;
   overflow-y: auto; /* allow scrolling so bottom links are visible */
   overscroll-behavior: contain; /* prevent scroll chaining */
+  display: flex;
+  flex-direction: column;
+  align-items: ${p => p.$collapsed ? 'center' : 'stretch'};
 `;
 
 const Logo = styled.div`
@@ -38,7 +44,7 @@ const Logo = styled.div`
 
 const ToggleRow = styled.div`
   display: flex;
-  justify-content: flex-end;
+  justify-content: ${p => p.$collapsed ? 'center' : 'flex-end'};
   margin-bottom: 0.75rem;
 `;
 
@@ -102,6 +108,30 @@ const IconBox = styled.span`
   color: #ffffff; /* icon color to white as requested */
 `;
 
+const CollapsedNavList = styled.ul`
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  align-items: center;
+`;
+
+const CollapsedIconLink = styled(NavLink)`
+  width: 40px;
+  height: 40px;
+  border-radius: 8px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: #ffffff;
+  text-decoration: none;
+  transition: background-color 0.15s ease, transform 0.15s ease;
+  &:hover { background-color: rgba(221, 156, 107, 0.18); transform: translateX(2px); }
+  &.active { background-color: rgba(221, 156, 107, 0.25); }
+`;
+
 const SubMenu = styled.ul.withConfig({
   shouldForwardProp: (prop) => !['isOpen'].includes(prop),
 })`
@@ -118,16 +148,37 @@ const StyledNavLink = styled(NavLink)`
   display: block;
   border-radius: 4px;
   font-size: 0.83rem; /* restored sublink font size */
+  position: relative;
+  transition: transform 0.15s ease, background-color 0.15s ease;
 
   &:hover {
     background-color: rgba(221, 156, 107, 0.12); /* brand primary tint */
     text-decoration: none;
+    transform: translateX(6px); /* forward-slide on hover */
   }
 
   &.active {
     background-color: rgba(221, 156, 107, 0.18); /* subtle active background */
     color: ${props => props.theme.colors.primary}; /* brand-matching active text */
     border-left: 3px solid ${props => props.theme.colors.primary}; /* active accent */
+  }
+
+  /* Forward indicator appears on hover */
+  &::after {
+    content: '›';
+    position: absolute;
+    right: 8px;
+    top: 50%;
+    transform: translateY(-50%) translateX(-4px);
+    opacity: 0;
+    color: ${props => props.theme.colors.primary};
+    font-weight: 600;
+    transition: transform 0.15s ease, opacity 0.15s ease;
+  }
+
+  &:hover::after {
+    opacity: 1;
+    transform: translateY(-50%) translateX(0);
   }
 `;
 
@@ -141,6 +192,12 @@ const StyledNavLink = styled(NavLink)`
  *  - icon: React component for vector icon (e.g., FiUsers)
  * Outputs: Collapsible section with NavLink items; auto-opens when the current route is within the module.
  */
+/**
+ * ModuleItem
+ * Purpose: Render a top-level sidebar module with collapsible sublinks and hover-open behavior.
+ * Inputs: label (string), slug (string), sublinks (array of {label, path}), icon (React component).
+ * Outputs: Collapsible/hover-open section with animated sublink hover effects.
+ */
 const ModuleItem = ({ label, slug, sublinks, icon: Icon }) => {
   const location = useLocation();
   const isInModule = useMemo(() => location.pathname.startsWith(`/${slug}`), [location.pathname, slug]);
@@ -152,7 +209,10 @@ const ModuleItem = ({ label, slug, sublinks, icon: Icon }) => {
   }, [isInModule]);
 
   return (
-    <NavItem>
+    <NavItem
+      onMouseEnter={() => setIsOpen(true)}
+      onMouseLeave={() => { if (!isInModule) setIsOpen(false); }}
+    >
       <ModuleHeader onClick={() => setIsOpen(!isOpen)} isActive={isOpen}>
         <HeaderLeft>
           {Icon && (
@@ -178,13 +238,19 @@ const ModuleItem = ({ label, slug, sublinks, icon: Icon }) => {
 };
 
 /**
+/**
  * Sidebar
- * Purpose: Render the side links bar with module navigation aligned to PMS.
+ * Purpose: Render the branded navigation. Shows modules normally; when collapsed,
+ *          renders an icon-only rail similar to GitHub.
  * Inputs:
- *  - onToggleLinksBar: function to hide/unhide the links bar
+ *  - isCollapsed: boolean — whether the sidebar is collapsed (icon-only)
+ *  - onToggleLinksBar: function — toggles collapsed/expanded state
  * Outputs: Sidebar navigation with groups and branded styling.
  */
-const Sidebar = ({ onToggleLinksBar }) => {
+const Sidebar = ({ isCollapsed = false, onToggleLinksBar }) => {
+  // Labels to hide from the sidebar (bottom items requested)
+  const hiddenLabels = new Set(['COMPLIANCE', 'SUPPORT & HELP']);
+
   const modules = [
     {
       label: 'DASHBOARD',
@@ -293,52 +359,57 @@ const Sidebar = ({ onToggleLinksBar }) => {
         { label: 'Compliance Configuration (NEW)', path: 'compliance-configuration' },
       ],
     },
-    {
-      label: 'COMPLIANCE',
-      slug: 'compliance',
-      icon: FiShield,
-      sublinks: [
-        { label: 'Audit Trail', path: 'audit-trail' },
-        { label: 'Approval Queue', path: 'approval-queue' },
-        { label: 'Compliance Events', path: 'compliance-events' },
-        { label: 'Data Management', path: 'data-management' },
-        { label: 'Risk Assessment', path: 'risk-assessment' },
-        { label: 'Policy Monitoring', path: 'policy-monitoring' },
-        { label: 'Compliance Reports', path: 'compliance-reports' },
-      ],
-    },
-    {
-      label: 'SUPPORT & HELP',
-      slug: 'support',
-      icon: FiHelpCircle,
-      sublinks: [
-        { label: 'Documentation', path: 'documentation' },
-        { label: 'FAQs', path: 'faqs' },
-        { label: 'Contact Support', path: 'contact-support' },
-        { label: 'System Status', path: 'system-status' },
-      ],
-    },
+    // COMPLIANCE and SUPPORT & HELP modules intentionally omitted via filtering below
   ];
 
+  // Compute a primary href for collapsed icon links
+  const getPrimaryHref = (m) => {
+    if (m.sublinks && m.sublinks.length > 0) {
+      const empty = m.sublinks.find(s => !s.path || s.path === '');
+      return empty ? `/${m.slug}` : `/${m.slug}/${m.sublinks[0].path}`;
+    }
+    return `/${m.slug}`;
+  };
+
   return (
-    <SidebarContainer>
-      <ToggleRow>
-        <ToggleButton aria-label="Close sidebar" title="Close sidebar" onClick={onToggleLinksBar}>
-          <FiChevronLeft size={16} />
+    <SidebarContainer $collapsed={isCollapsed}>
+      <ToggleRow $collapsed={isCollapsed}>
+        <ToggleButton
+          aria-label={isCollapsed ? 'Open sidebar' : 'Close sidebar'}
+          title={isCollapsed ? 'Open sidebar' : 'Close sidebar'}
+          onClick={onToggleLinksBar}
+        >
+          {isCollapsed ? <FiChevronRight size={16} /> : <FiChevronLeft size={16} />}
         </ToggleButton>
       </ToggleRow>
-      <Logo>PMS</Logo>
-      <NavList>
-        {modules.map((m, index) => (
-          <ModuleItem 
-            key={index}
-            label={m.label}
-            slug={m.slug}
-            icon={m.icon}
-            sublinks={m.sublinks}
-          />
-        ))}
-      </NavList>
+      {!isCollapsed && <Logo>PMS</Logo>}
+      {isCollapsed ? (
+        <CollapsedNavList>
+          {modules
+            .filter(m => !hiddenLabels.has(m.label))
+            .map((m, index) => (
+              <li key={index}>
+                <CollapsedIconLink to={getPrimaryHref(m)} title={m.label} aria-label={m.label}>
+                  {m.icon && <m.icon size={20} />}
+                </CollapsedIconLink>
+              </li>
+            ))}
+        </CollapsedNavList>
+      ) : (
+        <NavList>
+          {modules
+            .filter(m => !hiddenLabels.has(m.label))
+            .map((m, index) => (
+            <ModuleItem 
+              key={index}
+              label={m.label}
+              slug={m.slug}
+              icon={m.icon}
+              sublinks={m.sublinks}
+            />
+          ))}
+        </NavList>
+      )}
     </SidebarContainer>
   );
 };

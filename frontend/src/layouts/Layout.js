@@ -10,7 +10,7 @@ import { FiChevronRight } from 'react-icons/fi';
 // - Column 2: TopBar at the top; main content begins directly below.
 const Shell = styled.div`
   display: grid;
-  grid-template-columns: ${p => p.$sidebarHidden ? '12px minmax(0, 1fr)' : '280px minmax(0, 1fr)'};
+  grid-template-columns: ${p => p.$sidebarHidden ? '64px minmax(0, 1fr)' : '280px minmax(0, 1fr)'};
   grid-template-rows: 60px 1fr;
   grid-template-areas:
     'sidebar topbar'
@@ -53,15 +53,9 @@ const CollapsedHandle = styled.button`
 
 /**
  * Layout
- * Purpose: Render a two-column app shell.
+ * Purpose: Render a two-column app shell with a collapsible sidebar.
  * Inputs: None.
- * Outputs: Sidebar (full-height, no outer spacing), TopBar in right column, and routed content below TopBar.
- */
-/**
- * Layout
- * Purpose: Render a two-column app shell with a hide/unhide toggle for the links bar.
- * Inputs: None.
- * Outputs: Sidebar (can be collapsed), TopBar, and routed content.
+ * Outputs: Sidebar (expanded or icon-only when collapsed), TopBar, and routed content.
  */
 const Layout = () => {
   const [isSidebarHidden, setIsSidebarHidden] = useState(false);
@@ -73,13 +67,7 @@ const Layout = () => {
   return (
     <Shell $sidebarHidden={isSidebarHidden}>
       <SidebarArea>
-        {isSidebarHidden ? (
-          <CollapsedHandle aria-label="Open sidebar" onClick={() => setIsSidebarHidden(false)}>
-            <FiChevronRight size={16} />
-          </CollapsedHandle>
-        ) : (
-          <Sidebar onToggleLinksBar={handleToggleLinksBar} />
-        )}
+        <Sidebar isCollapsed={isSidebarHidden} onToggleLinksBar={handleToggleLinksBar} />
       </SidebarArea>
       <TopBarArea>
         <TopBar />

@@ -196,6 +196,60 @@ Quick verification (dev server)
 - Open `http://localhost:3003/compliance/audit-trail` → compliance page renders.
 - Open `http://localhost:3003/settings/payment-configuration` → settings page renders.
 
+## 📊 Dashboard Summary (Static)
+
+- The dashboard shows summary KPIs with brand styling: Total Customers, Paid Customers, Blocked Customers, Active Customers.
+- Static values are used for MVP. Edit the `metrics` array in `frontend/src/pages/Dashboard.js` to change numbers.
+
+Where to edit
+- `frontend/src/pages/Dashboard.js` → update the `metrics` array and card labels.
+
+Quick verification
+- Open `http://localhost:3003/dashboard` and confirm four branded cards render with Lexend font and colors (primary `#dd9c6b`, secondary `#00234C`).
+
+Approaches
+- MVP: Static values in the `metrics` array; fast to ship; no API calls.
+- Enterprise: Fetch counts from backend endpoints (e.g., `/api/Customers/stats`) with caching, skeleton loading states, and role-based visibility. Consider server-side aggregation and rate limiting.
+
+### 📊 Dashboard Graphs (Bar + Pie)
+
+- Two graphs render side-by-side under the summary cards: a bar chart and a pie chart.
+- Bar chart shows monthly paid customers; pie chart shows status distribution.
+- Both use inline SVG, Lexend font, and brand colors (primary `#dd9c6b`, secondary `#00234C`).
+
+Where to edit
+- `frontend/src/pages/Dashboard.js`
+  - Update `barData` for months and values (e.g., `{ label: 'Nov', value: 805 }`).
+  - Update `pieData` for segment labels, values, and colors.
+
+Code examples
+```js
+// Bar chart data
+const barData = [
+  { label: 'May', value: 620 },
+  { label: 'Jun', value: 660 },
+  { label: 'Jul', value: 700 },
+  { label: 'Aug', value: 720 },
+  { label: 'Sep', value: 750 },
+  { label: 'Oct', value: 780 },
+];
+
+// Pie chart data
+const pieData = [
+  { label: 'Paid', value: 780, color: '#dd9c6b' },
+  { label: 'Active', value: 950, color: '#00234C' },
+  { label: 'Blocked', value: 32, color: '#888888' },
+];
+```
+
+Quick verification
+- Open `http://localhost:3003/dashboard` → confirm two charts appear side-by-side.
+- Resize the browser to confirm they stack on small screens.
+
+Approaches
+- MVP: Inline SVG charts with static arrays (`barData`, `pieData`); zero dependencies.
+- Enterprise: Use `chart.js` or `echarts` with live data from a backend stats endpoint, tooltips, legends, animations, and accessibility features. Add loading states and caching.
+
 ## 🌐 API Endpoints
 
 ### Customer Management
@@ -214,6 +268,81 @@ Quick verification (dev server)
 
 ### Payment Plans
 - `GET /api/PaymentPlans` - Get all payment plans (paginated)
+
+### Authentication (Email-Based)
+
+- `POST /api/Auth/login` — Authenticate using email (password optional)
+
+Request body examples:
+
+```
+// Standard email + password
+{
+  "email": "ali@example.com",
+  "password": "yourPassword123"
+}
+
+// Email-only (if backend supports it)
+{
+  "email": "ali@example.com"
+}
+```
+
+Response body example:
+
+```
+{
+  "token": "<JWT>",
+  "expiresAt": "2025-11-07T15:47:57.5432602Z",
+  "user": {
+    "userId": "USR8888069",
+    "fullName": "Ali",
+    "email": "ali@example.com",
+    "roleId": null,
+    "isActive": true,
+    "createdAt": "2025-11-05T15:40:37.576461"
+  }
+}
+```
+
+Frontend integration:
+- The login form at `frontend/src/pages/Login.js` displays `Email` and `Password` fields, aligned with brand font `Lexend` and colors (primary `#dd9c6b`, secondary `#00234C`).
+- The client calls `login(email, password)` from `frontend/src/utils/api.js`.
+- If `password` is left empty, the client sends only `{ email }` (requires backend support).
+- On success, the app stores `jwt`, `jwt_expires`, and `user` in `localStorage` and redirects to `/dashboard`.
+
+### Login Behavior (MVP Plaintext Support — Updated)
+
+- The backend login now supports plaintext password verification when a legacy `users.password` column exists.
+- If `users.password` is present, the API matches the provided password exactly (trimmed). If it matches, login succeeds.
+- If no `users.password` is available but `users.password_hash` exists, the API verifies the hash and allows login on match.
+- If neither is available, the API falls back to email-only login (MVP) and allows access if the email exists.
+
+Where to edit
+- `backend/PMS_APIs/Controllers/AuthController.cs` → `Login` endpoint implements plaintext fallback and raw SQL email lookup.
+
+Quick test (PowerShell)
+```powershell
+Invoke-RestMethod -Method Post -Uri http://localhost:5296/api/Auth/login -ContentType 'application/json' -Body '{"email":"admin@technyder.co","password":"technyderteam"}' | ConvertTo-Json -Depth 5
+```
+
+Troubleshooting 401
+- Ensure the user record exists in the `users` table. If not, create via:
+```powershell
+Invoke-RestMethod -Method Post -Uri http://localhost:5296/api/Auth/register -ContentType 'application/json' -Body '{"fullName":"Admin","email":"admin@technyder.co","password":"technyderteam","isActive":true}'
+```
+- Normalize inputs: emails compared in lowercase and trimmed; passwords are trimmed.
+- If your DB only has a `password` column and no `password_hash`, the login still works via plaintext fallback.
+
+Quick verification:
+- Start frontend: `cd pms/frontend && npm start` → open `http://localhost:3000/login`.
+- Enter an email and optionally a password, press `Sign In`.
+- Confirm navigation to `/dashboard` and that `localStorage.jwt` is present.
+
+Best practices:
+- MVP: Accept email-only login for internal/test environments; add rate limiting.
+- Enterprise: Require password (hashed via BCrypt), enforce minimum complexity, add account lockout for repeated failures, implement refresh tokens with short-lived access tokens, and audit login attempts.
+
 
 ## 🟦 PostgreSQL (Neon) Setup
 
@@ -296,6 +425,117 @@ Invoke-WebRequest -Uri "http://localhost:5296/api/Auth/register" -Method POST -C
 Invoke-WebRequest -Uri "http://localhost:5296/api/Auth/login" -Method POST -ContentType "application/json" -Body '{"email":"john.doe@example.com","password":"password123"}'
 ```
 
+## UI Update: Sidebar Navigation
+
+- Hidden modules: `COMPLIANCE` and `SUPPORT & HELP` (bottom of the sidebar).
+- Reason: Requested to simplify navigation by removing non-essential bottom links for now.
+- Where: `frontend/src/layouts/Sidebar.js` — filtered by label using `hiddenLabels`.
+
+Example:
+
+```js
+// Sidebar.js
+// Hidden labels set used to filter out modules from rendering
+const hiddenLabels = new Set(['COMPLIANCE', 'SUPPORT & HELP']);
+
+// ...
+<NavList>
+  {modules
+    .filter(m => !hiddenLabels.has(m.label))
+    .map((m, index) => (
+      <ModuleItem
+        key={index}
+        label={m.label}
+        slug={m.slug}
+        icon={m.icon}
+        sublinks={m.sublinks}
+      />
+  ))}
+</NavList>
+```
+
+Re-enable later:
+- Remove labels from `hiddenLabels` or delete the filter to show all modules again.
+
+Brand alignment:
+- Font: `Lexend` is used throughout the sidebar.
+- Colors: primary `#dd9c6b`, secondary `#00234C`.
+
+### Hover Behavior (New)
+
+- Modules now open on hover: moving the cursor over a module header expands its submenu.
+- Sublinks animate forward on hover: each link slides slightly to the right and shows a subtle `›` indicator.
+
+Implementation notes:
+- File: `frontend/src/layouts/Sidebar.js`
+- Module hover-open: attach `onMouseEnter`/`onMouseLeave` to the module container and keep open when navigating inside the module.
+- Sublink forward-slide:
+
+```js
+const StyledNavLink = styled(NavLink)`
+  position: relative;
+  transition: transform 0.15s ease, background-color 0.15s ease;
+  &:hover { transform: translateX(6px); }
+  &::after {
+    content: '›';
+    position: absolute; right: 8px; top: 50%;
+    transform: translateY(-50%) translateX(-4px);
+    opacity: 0; color: ${p => p.theme.colors.primary};
+    transition: transform 0.15s ease, opacity 0.15s ease;
+  }
+  &:hover::after { opacity: 1; transform: translateY(-50%) translateX(0); }
+`;
+```
+
+MVP vs Enterprise:
+- MVP: static hover behavior as implemented; minimal code changes.
+- Enterprise: drive hover/expand behavior from a global navigation config, allow per-role visibility and interaction settings, and add motion-reduced variants for accessibility.
+
+### Collapsed Icons (New)
+
+- When the sidebar is collapsed, it shows an icon-only rail similar to GitHub.
+- Clicking an icon navigates to its primary route (e.g., `DASHBOARD → /dashboard`, `CUSTOMERS → /customers/all-customers`).
+- Toggle control: the arrow button at the top switches between collapsed and expanded states.
+
+Where to edit
+- `frontend/src/layouts/Layout.js` — sets the grid column widths to `64px` collapsed and `280px` expanded and passes `isCollapsed` to `Sidebar`.
+- `frontend/src/layouts/Sidebar.js` — renders icons-only when `isCollapsed` is true.
+
+Implementation notes
+- The sidebar container adapts to grid width and centers icons when collapsed.
+- Collapsed icon links use brand colors and simple hover feedback.
+
+Example: collapsed rendering
+
+```js
+// Layout.js
+<Shell $sidebarHidden={isSidebarHidden}>
+  <SidebarArea>
+    <Sidebar isCollapsed={isSidebarHidden} onToggleLinksBar={handleToggleLinksBar} />
+  </SidebarArea>
+  {/* ... */}
+</Shell>
+
+// Sidebar.js
+const CollapsedIconLink = styled(NavLink)`
+  width: 40px; height: 40px; border-radius: 8px;
+  display: inline-flex; align-items: center; justify-content: center;
+  color: #ffffff; text-decoration: none;
+  transition: background-color 0.15s ease, transform 0.15s ease;
+  &:hover { background-color: rgba(221, 156, 107, 0.18); transform: translateX(2px); }
+  &.active { background-color: rgba(221, 156, 107, 0.25); }
+`;
+```
+
+Verification
+- Start the frontend and collapse the sidebar with the top arrow.
+- Confirm the icon rail stays visible and icons navigate correctly.
+- Expanded state shows full labels and sublinks with hover-open behavior.
+
+Options
+- MVP: icon-only rail with click navigation and simple tooltips (`title` attribute).
+- Enterprise: add floating flyout panels showing module titles and sublinks on hover, keyboard accessibility, and role-based visibility.
+
 **Response Format (Login)**
 ```json
 {
@@ -337,6 +577,9 @@ The login endpoint supports these scenarios and will auto-upgrade on success:
 Troubleshooting a `401: Invalid email or password`:
 - Ensure the user exists and `is_active = TRUE`.
 - Normalize email (lowercase, no spaces) and password (trim spaces).
+- Backend now trims stored emails during lookup to avoid trailing/leading-space mismatches:
+  - If you manually inserted users and the `email` column contains spaces, login will still work.
+  - If a specific email still fails, re-register that user via `POST /api/Auth/register` to ensure a clean record.
 - If only a `password` column exists, set `password_hash` to the literal password once to trigger auto-upgrade on next login:
 
 ```sql
@@ -346,6 +589,12 @@ WHERE LOWER(email) = 'fatima.noor@example.com';
 ```
 
 - Clear browser storage (`localStorage`: `jwt`, `jwt_expires`, `user`) and retry.
+
+Quick re-test (PowerShell):
+```powershell
+Invoke-WebRequest -Uri "http://localhost:5296/api/Auth/register" -Method POST -ContentType "application/json" -Body '{"fullName":"Ayesha Khan","email":"ayesha.khan@example.com","password":"1234","isActive":true}'
+Invoke-WebRequest -Uri "http://localhost:5296/api/Auth/login" -Method POST -ContentType "application/json" -Body '{"email":"ayesha.khan@example.com","password":"1234"}'
+```
 
 ### Additional Endpoints
 - Allotments, Payments, Penalties, Waivers, Refunds, Transfers, NDCs, Possessions, Registrations
@@ -772,3 +1021,189 @@ Quick verification
 - Log in at `http://localhost:3007/login`.
 - Open `http://localhost:3007/dashboard` or `http://localhost:3007/customers/all-customers`.
 - Confirm the top bar shows your name and the `Logout` button works.
+
+## 🖼️ Sidebar Vector Icons (New)
+
+- Change: Replaced emoji module labels with SVG vector icons using `react-icons/fi` for a clean, scalable look aligned with brand.
+- Brand: Icons use brand primary `#dd9c6b` on a brand secondary `#00234C` sidebar background; font remains `Lexend`.
+
+How it works
+- Each module now includes an `icon` property that points to a Feather icon (e.g., `FiUsers`).
+- The `ModuleItem` renders the icon before the module label and keeps the collapse chevron on the right.
+
+Code reference
+```jsx
+// frontend/src/layouts/Sidebar.js
+import { FiUsers } from 'react-icons/fi';
+
+// Module config
+const modules = [
+  { label: 'CUSTOMERS', slug: 'customers', icon: FiUsers, sublinks: [ /* ... */ ] },
+];
+
+// ModuleItem signature and render
+/**
+ * ModuleItem
+ * Purpose: Render a top-level sidebar module with collapsible sublinks.
+ * Inputs:
+ *  - label: display string (e.g., 'CUSTOMERS')
+ *  - slug: base path for routing (e.g., 'customers')
+ *  - sublinks: array of { label, path } items
+ *  - icon: React component for vector icon (e.g., FiUsers)
+ * Outputs: Collapsible section with NavLink items.
+ */
+const ModuleItem = ({ label, slug, sublinks, icon: Icon }) => (
+  <ModuleHeader>
+    <HeaderLeft>
+      {Icon && <IconBox><Icon size={18} /></IconBox>}
+      <span>{label}</span>
+    </HeaderLeft>
+    {/* chevron */}
+  </ModuleHeader>
+);
+```
+
+Verify
+- Start frontend: `cd pms/frontend && npm start`
+- Open `http://localhost:3000/` and confirm vector icons appear next to module labels.
+
+Notes
+- `react-icons` is already used for chevrons; adding Feather icons (`react-icons/fi`) keeps bundle small and consistent.
+- Icons render as SVGs, ensuring crisp visuals on all DPI scales.
+
+### Sidebar UX Tweaks (Updated)
+- Icon color changed to white for better contrast on `#00234C`.
+- Reduced link spacing and padding for a denser, more scannable menu.
+- Enabled vertical scrolling in the sidebar so all bottom modules are visible.
+
+Code refs
+- `frontend/src/layouts/Sidebar.js`
+  - `SidebarContainer`: `overflow-y: auto` and `overscroll-behavior: contain`.
+  - `IconBox`: `color: #ffffff`.
+  - `NavItem`: `margin-bottom: 0.25rem`.
+  - `SubMenu`: reduced `padding-left` and `margin-top`.
+  - `StyledNavLink`: compact `padding` and font size.
+
+### Sidebar Hide/Unhide Toggle (New)
+- Adds a small button at the top of the links bar to hide/unhide the sidebar.
+- When hidden, a slim vertical handle remains on the left with an icon-only chevron; click it to unhide.
+- Styling follows brand: primary `#dd9c6b`, secondary `#00234C`, font `Lexend`.
+
+Where to edit
+- `frontend/src/layouts/Layout.js` – maintains `isSidebarHidden` state and collapses the grid to `12px` when hidden; shows the vertical “Show Links” handle.
+- `frontend/src/layouts/Sidebar.js` – renders a `Hide Links` button at the top to toggle the links bar.
+
+Code reference
+```jsx
+// Layout.js
+/** Layout
+ * Purpose: Render a two-column app shell with a hide/unhide toggle for the links bar.
+ * Inputs: None.
+ * Outputs: Sidebar (can be collapsed), TopBar, and routed content.
+ */
+const [isSidebarHidden, setIsSidebarHidden] = useState(false);
+<Shell $sidebarHidden={isSidebarHidden}>
+  <SidebarArea>
+    {isSidebarHidden ? (
+      <CollapsedHandle aria-label="Open sidebar" onClick={() => setIsSidebarHidden(false)}>
+        <FiChevronRight size={16} />
+      </CollapsedHandle>
+    ) : (
+      <Sidebar onToggleLinksBar={() => setIsSidebarHidden(s => !s)} />
+    )}
+  </SidebarArea>
+```
+
+```jsx
+// Sidebar.js
+/** Sidebar
+ * Inputs:
+ *  - onToggleLinksBar: function to hide/unhide the links bar
+ */
+<ToggleRow>
+  <ToggleButton aria-label="Close sidebar" title="Close sidebar" onClick={onToggleLinksBar}>
+    <FiChevronLeft size={16} />
+  </ToggleButton>
+ </ToggleRow>
+```
+
+Quick verification
+- Start frontend: `cd pms/frontend && npm start`
+- Open `http://localhost:3000/`.
+- Click `Hide Links` in the sidebar; the links bar collapses to a slim handle.
+- Click the vertical `Show Links` handle to restore the sidebar.
+
+### Sidebar Colors & Sizes (Adjusted)
+- Active sublink uses a subtle brand tint instead of a full solid block:
+  - Active: background `rgba(221, 156, 107, 0.18)`, text `#dd9c6b`, left border accent `3px`.
+  - Hover: background `rgba(221, 156, 107, 0.12)`.
+- Submenu link font size restored to `0.83rem` (as before), with compact padding.
+- Module heading labels (Dashboard, Customers, Property…) reduced to `0.8rem` for a cleaner hierarchy.
+- “Hide Links” button is now a ghost style (transparent) with primary border; on hover it fills with primary.
+
+Where to edit
+- `frontend/src/layouts/Sidebar.js`
+  - `StyledNavLink`: active/hover colors and smaller font size.
+  - `ToggleButton`: ghost style with brand primary and hover fill.
+
+Quick verification
+- With the app running at `http://localhost:3000`, navigate the sidebar:
+  - Hover a sublink and confirm the subtle brand tint.
+  - Click a sublink; confirm active text color and left accent.
+  - Confirm the “Hide Links” button shows a ghost style and fills on hover.
+
+## 🔐 Email-Only Login (Temporary MVP)
+
+- Change: Login now authenticates solely by email existence. Password is ignored and no database writes occur during login.
+- Impact: Immediate unblock for environments with inconsistent password storage; returns a JWT when the email exists.
+
+What changed
+- `backend/PMS_APIs/Controllers/AuthController.cs` – `Login` flow:
+  - Normalizes email and queries the `users` table.
+  - If a user with that email exists, it issues a JWT.
+  - Password and `isActive` flags are not checked in this temporary mode.
+
+Code reference
+```csharp
+// AuthController.Login (excerpt)
+var normalizedEmail = (loginRequest.Email ?? string.Empty).Trim().ToLower();
+var user = await _context.Users.FirstOrDefaultAsync(u => u.Email.ToLower() == normalizedEmail);
+if (user == null)
+{
+    return Unauthorized(new { message = "Invalid email or password" });
+}
+// Generate JWT and return
+```
+
+Quick test
+- Register a user (if needed), then login using just the correct email:
+
+```powershell
+# Register (role optional)
+Invoke-WebRequest -Uri "http://localhost:5296/api/Auth/register" -Method POST -ContentType "application/json" -Body '{"fullName":"Email Only","email":"emailonly.user@example.com","password":"anything","isActive":true}'
+
+# Login (password ignored)
+Invoke-WebRequest -Uri "http://localhost:5296/api/Auth/login" -Method POST -ContentType "application/json" -Body '{"email":"emailonly.user@example.com","password":"wrong"}'
+```
+
+Next (recommended)
+- Restore proper authentication: hash passwords at registration and verify on login, enforce `isActive`, and add password reset.
+## 🧱 Customers Grid Header (Adjusted)
+
+- Table header background is now light to improve readability.
+  - Background: `theme.colors.lightGray` (`#f5f5f5`).
+  - Text color: brand secondary `#00234C`.
+- Header font size reduced slightly for a compact look.
+  - Font size: `0.95rem` with font weight `600`.
+
+Where to edit
+- `frontend/src/components/CustomersGrid.js` → styled `Th` definition.
+
+Quick verification
+- Start frontend: `cd pms/frontend && npm start`.
+- Open `http://localhost:3000/customers/all-customers`.
+- Confirm the table header row shows a light background with slightly smaller, readable labels.
+
+Notes and best practices
+- Keep header contrast high when using light backgrounds.
+- For multiple grids, consider centralizing table tokens in the theme (colors, font sizes) for consistency.
