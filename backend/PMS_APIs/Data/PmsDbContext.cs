@@ -20,6 +20,7 @@ namespace PMS_APIs.Data
         public DbSet<Payment> Payments { get; set; }
         public DbSet<Registration> Registrations { get; set; }
         public DbSet<PaymentPlan> PaymentPlans { get; set; }
+        public DbSet<PaymentSchedule> PaymentSchedules { get; set; }
         public DbSet<Allotment> Allotments { get; set; }
         public DbSet<CustomerLog> CustomerLogs { get; set; }
         public DbSet<Penalty> Penalties { get; set; }
@@ -44,6 +45,13 @@ namespace PMS_APIs.Data
                 .HasOne(c => c.PaymentPlan)
                 .WithMany(p => p.Customers)
                 .HasForeignKey(c => c.PlanId)
+                .OnDelete(DeleteBehavior.SetNull);
+
+            // Configure PaymentSchedule -> PaymentPlan relationship
+            modelBuilder.Entity<PaymentSchedule>()
+                .HasOne(ps => ps.PaymentPlan)
+                .WithMany()
+                .HasForeignKey(ps => ps.PlanId)
                 .OnDelete(DeleteBehavior.SetNull);
 
             // Configure Transfer relationships with different foreign keys
@@ -78,6 +86,11 @@ namespace PMS_APIs.Data
 
             modelBuilder.Entity<Payment>()
                 .HasIndex(p => p.ReferenceNo)
+                .IsUnique(false);
+
+            // Indexes for schedules
+            modelBuilder.Entity<PaymentSchedule>()
+                .HasIndex(ps => new { ps.PlanId, ps.DueDate })
                 .IsUnique(false);
 
             // Configure decimal precision for all monetary fields

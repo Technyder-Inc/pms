@@ -76,6 +76,24 @@ export async function getCustomer(id) {
 }
 
 /**
+ * updateCustomer
+ * Purpose: Update an existing customer via PUT to backend API.
+ * Inputs:
+ *  - id: string customer identifier
+ *  - payload: object with updated customer fields (must include CustomerId matching id)
+ * Outputs:
+ *  - Returns the updated customer object from the API
+ */
+export async function updateCustomer(id, payload) {
+  if (!id) throw new Error('Customer id is required');
+  if (!payload || typeof payload !== 'object') throw new Error('Payload is required');
+  return fetchJson(`/api/Customers/${encodeURIComponent(id)}`, {
+    method: 'PUT',
+    body: JSON.stringify(payload),
+  });
+}
+
+/**
  * login
  * Purpose: Authenticate a user using email (password optional), then store JWT.
  * Inputs:
@@ -110,4 +128,229 @@ export async function login(email, password) {
   localStorage.setItem('jwt_expires', typeof expiresAt === 'string' ? expiresAt : String(expiresAt ?? ''));
   localStorage.setItem('user', JSON.stringify(user));
   return { token, expiresAt, user };
+}
+
+/**
+ * Properties API
+ * Purpose: CRUD operations for properties.
+ * Inputs:
+ *  - getProperties: params object with { page, pageSize, search, status, projectName, size }
+ *  - getProperty: id string
+ *  - createProperty: payload object with property fields
+ *  - updateProperty: id string and payload object
+ *  - deleteProperty: id string
+ * Outputs:
+ *  - JSON responses from backend endpoints.
+ */
+export async function getProperties(params = {}) {
+  const query = new URLSearchParams();
+  Object.entries(params).forEach(([k, v]) => {
+    if (v !== undefined && v !== null && v !== '') query.append(k, v);
+  });
+
+  const path = query.toString()
+    ? `/api/Properties?${query.toString()}`
+    : '/api/Properties';
+
+  return fetchJson(path);
+}
+
+export async function getProperty(id) {
+  if (!id) throw new Error('Property id is required');
+  return fetchJson(`/api/Properties/${encodeURIComponent(id)}`);
+}
+
+export async function createProperty(payload) {
+  if (!payload || typeof payload !== 'object') throw new Error('Payload is required');
+  return fetchJson('/api/Properties', {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  });
+}
+
+export async function updateProperty(id, payload) {
+  if (!id) throw new Error('Property id is required');
+  if (!payload || typeof payload !== 'object') throw new Error('Payload is required');
+  return fetchJson(`/api/Properties/${encodeURIComponent(id)}`, {
+    method: 'PUT',
+    body: JSON.stringify(payload),
+  });
+}
+
+export async function deleteProperty(id) {
+  if (!id) throw new Error('Property id is required');
+  return fetchJson(`/api/Properties/${encodeURIComponent(id)}`, {
+    method: 'DELETE',
+  });
+}
+
+/**
+ * getPaymentPlans
+ * Purpose: Fetch payment plans list from the backend with optional filters/pagination.
+ * Inputs:
+ *  - params: object of query params (e.g., { page, pageSize, status })
+ * Outputs:
+ *  - Returns an object with { data, totalCount, page, pageSize, totalPages }
+ */
+export async function getPaymentPlans(params = {}) {
+  const query = new URLSearchParams();
+  Object.entries(params).forEach(([k, v]) => {
+    if (v !== undefined && v !== null && v !== '') query.append(k, v);
+  });
+
+  const path = query.toString()
+    ? `/api/PaymentPlans?${query.toString()}`
+    : '/api/PaymentPlans';
+
+  return fetchJson(path);
+}
+
+/**
+ * getPaymentPlan
+ * Purpose: Fetch a single payment plan by ID.
+ * Inputs:
+ *  - id: string plan identifier (e.g., 'PP0000001')
+ * Outputs:
+ *  - Returns a payment plan object
+ */
+export async function getPaymentPlan(id) {
+  if (!id) throw new Error('Payment plan id is required');
+  return fetchJson(`/api/PaymentPlans/${encodeURIComponent(id)}`);
+}
+
+/**
+ * getPaymentSchedules
+ * Purpose: Fetch payment schedule rows for a given plan (child records).
+ * Inputs:
+ *  - params: object of query params (e.g., { planId, page, pageSize })
+ * Outputs:
+ *  - Returns an array or paginated object depending on backend implementation.
+ * Notes:
+ *  - Backend endpoint for PaymentSchedules may not exist yet. This function will
+ *    throw if the API returns 404; callers should handle and show a friendly message.
+ */
+export async function getPaymentSchedules(params = {}) {
+  const query = new URLSearchParams();
+  Object.entries(params).forEach(([k, v]) => {
+    if (v !== undefined && v !== null && v !== '') query.append(k, v);
+  });
+
+  const path = query.toString()
+    ? `/api/PaymentSchedules?${query.toString()}`
+    : '/api/PaymentSchedules';
+
+  return fetchJson(path);
+}
+
+/**
+ * getPaymentSchedule
+ * Purpose: Fetch a single payment schedule row by schedule ID.
+ * Inputs:
+ *  - id: string schedule identifier (e.g., 'PS0000001')
+ * Outputs:
+ *  - Returns a payment schedule object
+ */
+export async function getPaymentSchedule(id) {
+  if (!id) throw new Error('Payment schedule id is required');
+  return fetchJson(`/api/PaymentSchedules/${encodeURIComponent(id)}`);
+}
+
+/**
+ * createPaymentSchedule
+ * Purpose: Create a new child payment schedule under a plan.
+ * Inputs:
+ *  - payload: object containing schedule fields (e.g., { planId, paymentDescription, installmentNo, dueDate, amount, surchargeApplied, surchargeRate, description })
+ * Outputs:
+ *  - Returns the created schedule object
+ */
+export async function createPaymentSchedule(payload) {
+  if (!payload || typeof payload !== 'object') throw new Error('Payload is required');
+  if (!payload.planId && !payload.PlanId) throw new Error('PlanId is required');
+  const body = JSON.stringify(payload);
+  return fetchJson('/api/PaymentSchedules', { method: 'POST', body });
+}
+
+/**
+ * updatePaymentSchedule
+ * Purpose: Update an existing payment schedule.
+ * Inputs:
+ *  - id: string schedule identifier
+ *  - payload: object with updated fields
+ * Outputs:
+ *  - Returns the updated schedule object
+ */
+export async function updatePaymentSchedule(id, payload) {
+  if (!id) throw new Error('Payment schedule id is required');
+  if (!payload || typeof payload !== 'object') throw new Error('Payload is required');
+  return fetchJson(`/api/PaymentSchedules/${encodeURIComponent(id)}`, {
+    method: 'PUT',
+    body: JSON.stringify(payload),
+  });
+}
+
+/**
+ * deletePaymentSchedule
+ * Purpose: Delete a payment schedule row by ID.
+ * Inputs:
+ *  - id: string schedule identifier
+ * Outputs:
+ *  - Returns nothing (204 expected)
+ */
+export async function deletePaymentSchedule(id) {
+  if (!id) throw new Error('Payment schedule id is required');
+  return fetchJson(`/api/PaymentSchedules/${encodeURIComponent(id)}`, {
+    method: 'DELETE',
+  });
+}
+
+/**
+ * getPayments
+ * Purpose: Fetch payments list with optional filters (customerId, status, date range, pagination).
+ * Inputs:
+ *  - params: object of query params (e.g., { page, pageSize, customerId, status, fromDate, toDate })
+ * Outputs:
+ *  - Returns an array or paginated object depending on backend implementation.
+ */
+export async function getPayments(params = {}) {
+  const query = new URLSearchParams();
+  Object.entries(params).forEach(([k, v]) => {
+    if (v !== undefined && v !== null && v !== '') query.append(k, v);
+  });
+
+  const path = query.toString()
+    ? `/api/Payments?${query.toString()}`
+    : '/api/Payments';
+
+  return fetchJson(path);
+}
+
+/**
+ * getPayment
+ * Purpose: Fetch a single payment by ID.
+ * Inputs:
+ *  - id: string payment identifier
+ * Outputs:
+ *  - Returns a payment object
+ */
+export async function getPayment(id) {
+  if (!id) throw new Error('Payment id is required');
+  return fetchJson(`/api/Payments/${encodeURIComponent(id)}`);
+}
+
+/**
+ * updatePayment
+ * Purpose: Update an existing payment via PUT to backend API.
+ * Inputs:
+ *  - id: string payment identifier
+ *  - payload: object with updated payment fields
+ * Outputs:
+ *  - Returns the updated payment object from the API
+ */
+export async function updatePayment(id, payload) {
+  if (!id) throw new Error('Payment id is required');
+  if (!payload || typeof payload !== 'object') throw new Error('Payload is required');
+  return fetchJson(`/api/Payments/${encodeURIComponent(id)}` , {
+    method: 'PUT',
+    body: JSON.stringify(payload),
+  });
 }

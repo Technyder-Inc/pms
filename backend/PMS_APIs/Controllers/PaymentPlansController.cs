@@ -21,32 +21,28 @@ namespace PMS_APIs.Controllers
         }
 
         /// <summary>
-        /// Get all payment plans with optional filtering and pagination
+        /// Get all payment plans with optional filtering and pagination.
+        /// Inputs: page (default 1), pageSize (default 10), projectId optional, frequency optional.
+        /// Outputs: paginated list with totalCount, page, pageSize, totalPages.
         /// </summary>
-        /// <param name="page">Page number (default: 1)</param>
-        /// <param name="pageSize">Items per page (default: 10)</param>
-        /// <param name="customerId">Filter by customer ID</param>
-        /// <param name="status">Filter by payment plan status</param>
-        /// <returns>List of payment plans</returns>
         [HttpGet]
         public async Task<ActionResult<IEnumerable<PaymentPlan>>> GetPaymentPlans(
             int page = 1,
             int pageSize = 10,
-            string? customerId = null,
-            string? status = null)
+            string? projectId = null,
+            string? frequency = null)
         {
             var query = _context.PaymentPlans
                 .AsQueryable();
 
-            if (!string.IsNullOrEmpty(customerId))
+            if (!string.IsNullOrEmpty(projectId))
             {
-                // Note: PaymentPlan model doesn't have CustomerId, this filter is removed
-                // query = query.Where(pp => pp.CustomerId == customerId);
+                query = query.Where(pp => pp.ProjectId == projectId);
             }
 
-            if (!string.IsNullOrEmpty(status))
+            if (!string.IsNullOrEmpty(frequency))
             {
-                query = query.Where(pp => pp.Status == status);
+                query = query.Where(pp => pp.Frequency == frequency);
             }
 
             var totalCount = await query.CountAsync();
@@ -86,10 +82,10 @@ namespace PMS_APIs.Controllers
         }
 
         /// <summary>
-        /// Create a new payment plan
+        /// Create a new payment plan.
+        /// Inputs: PaymentPlan payload aligned to payment_plan schema.
+        /// Outputs: 201 with created entity or 400 on error.
         /// </summary>
-        /// <param name="paymentPlan">Payment plan data</param>
-        /// <returns>Created payment plan</returns>
         [HttpPost]
         public async Task<ActionResult<PaymentPlan>> PostPaymentPlan(PaymentPlan paymentPlan)
         {
@@ -100,7 +96,6 @@ namespace PMS_APIs.Controllers
             }
 
             paymentPlan.CreatedAt = DateTime.UtcNow;
-            paymentPlan.Status = "Active";
 
             _context.PaymentPlans.Add(paymentPlan);
 
@@ -116,11 +111,10 @@ namespace PMS_APIs.Controllers
         }
 
         /// <summary>
-        /// Update an existing payment plan
+        /// Update an existing payment plan.
+        /// Inputs: id path param, PaymentPlan payload fields present in schema.
+        /// Outputs: 200 with updated entity or error codes.
         /// </summary>
-        /// <param name="id">Payment plan ID</param>
-        /// <param name="paymentPlan">Updated payment plan data</param>
-        /// <returns>Updated payment plan</returns>
         [HttpPut("{id}")]
         public async Task<IActionResult> PutPaymentPlan(string id, PaymentPlan paymentPlan)
         {
@@ -135,20 +129,13 @@ namespace PMS_APIs.Controllers
                 return NotFound(new { message = "Payment plan not found" });
             }
 
-            // Update properties
+            // Update properties aligned with the current schema
+            existingPaymentPlan.ProjectId = paymentPlan.ProjectId;
             existingPaymentPlan.PlanName = paymentPlan.PlanName;
-            existingPaymentPlan.TotalInstallments = paymentPlan.TotalInstallments;
-            existingPaymentPlan.InstallmentAmount = paymentPlan.InstallmentAmount;
+            existingPaymentPlan.TotalAmount = paymentPlan.TotalAmount;
+            existingPaymentPlan.DurationMonths = paymentPlan.DurationMonths;
             existingPaymentPlan.Frequency = paymentPlan.Frequency;
-            existingPaymentPlan.DownPayment = paymentPlan.DownPayment;
-            existingPaymentPlan.PossessionAmount = paymentPlan.PossessionAmount;
-            existingPaymentPlan.DevelopmentCharges = paymentPlan.DevelopmentCharges;
-            existingPaymentPlan.MaintenanceCharges = paymentPlan.MaintenanceCharges;
-            existingPaymentPlan.LateFeePercentage = paymentPlan.LateFeePercentage;
-            existingPaymentPlan.GracePeriodDays = paymentPlan.GracePeriodDays;
-            existingPaymentPlan.Status = paymentPlan.Status;
             existingPaymentPlan.Description = paymentPlan.Description;
-            existingPaymentPlan.TermsConditions = paymentPlan.TermsConditions;
 
             try
             {
@@ -170,78 +157,54 @@ namespace PMS_APIs.Controllers
         }
 
         /// <summary>
-        /// Update payment plan status
+        /// Update payment plan status.
+        /// Purpose: Not supported because schema has no status column.
+        /// Inputs: id, status request body.
+        /// Outputs: 400 explaining unsupported operation.
         /// </summary>
-        /// <param name="id">Payment plan ID</param>
-        /// <param name="status">New status</param>
-        /// <returns>Success message</returns>
         [HttpPost("{id}/status")]
-        public async Task<IActionResult> UpdatePaymentPlanStatus(string id, [FromBody] StatusUpdateRequest request)
+        public IActionResult UpdatePaymentPlanStatus(string id, [FromBody] StatusUpdateRequest request)
         {
-            var paymentPlan = await _context.PaymentPlans.FindAsync(id);
-            if (paymentPlan == null)
-            {
-                return NotFound(new { message = "Payment plan not found" });
-            }
-
-            paymentPlan.Status = request.Status;
-
-            try
-            {
-                await _context.SaveChangesAsync();
-                return Ok(new { message = "Payment plan status updated successfully" });
-            }
-            catch (DbUpdateException ex)
-            {
-                return BadRequest(new { message = "Error updating payment plan status", error = ex.Message });
-            }
+            return BadRequest(new { message = "Status field is not supported in current payment_plan schema." });
         }
 
         /// <summary>
-        /// Get payment plan statistics
+        /// Get payment plan statistics.
+        /// Outputs: totalPlans, averageTotalAmount, averageDurationMonths.
         /// </summary>
-        /// <returns>Payment plan statistics</returns>
         [HttpGet("statistics")]
         public async Task<ActionResult> GetPaymentPlanStatistics()
         {
             var totalPlans = await _context.PaymentPlans.CountAsync();
-            var activePlans = await _context.PaymentPlans.CountAsync(pp => pp.Status == "Active");
-            var completedPlans = await _context.PaymentPlans.CountAsync(pp => pp.Status == "Completed");
-            var suspendedPlans = await _context.PaymentPlans.CountAsync(pp => pp.Status == "Suspended");
+            var averageTotalAmount = await _context.PaymentPlans
+                .Where(pp => pp.TotalAmount.HasValue)
+                .AverageAsync(pp => pp.TotalAmount!.Value);
 
-            var averageInstallmentAmount = await _context.PaymentPlans
-                .Where(pp => pp.InstallmentAmount.HasValue)
-                .AverageAsync(pp => pp.InstallmentAmount!.Value);
-
-            var averageDownPayment = await _context.PaymentPlans
-                .Where(pp => pp.DownPayment.HasValue)
-                .AverageAsync(pp => pp.DownPayment!.Value);
+            var averageDurationMonths = await _context.PaymentPlans
+                .Where(pp => pp.DurationMonths.HasValue)
+                .AverageAsync(pp => pp.DurationMonths!.Value);
 
             return Ok(new
             {
                 totalPlans,
-                activePlans,
-                completedPlans,
-                suspendedPlans,
-                averageInstallmentAmount,
-                averageDownPayment
+                averageTotalAmount,
+                averageDurationMonths
             });
         }
 
         /// <summary>
-        /// Get overdue payment plans
+        /// Get overdue payment plans.
+        /// Definition: plans created more than 30 days ago (simple heuristic).
         /// </summary>
-        /// <returns>List of overdue payment plans</returns>
         [HttpGet("overdue")]
         public async Task<ActionResult> GetOverduePaymentPlans()
         {
             var currentDate = DateTime.UtcNow.Date;
             
-            // Since PaymentPlan doesn't have EndDate or RemainingAmount, 
-            // we'll return plans that are active and created more than 30 days ago
+            // Since PaymentPlan doesn't have status, EndDate or RemainingAmount,
+            // return plans created more than 30 days ago.
             var overduePlans = await _context.PaymentPlans
-                .Where(pp => pp.Status == "Active" && 
-                           pp.CreatedAt < currentDate.AddDays(-30))
+                .Where(pp => pp.CreatedAt < currentDate.AddDays(-30))
                 .OrderBy(pp => pp.CreatedAt)
                 .ToListAsync();
 

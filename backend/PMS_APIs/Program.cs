@@ -52,9 +52,21 @@ builder.Services.AddSwaggerGen(c =>
     });
 });
 
-// Add Entity Framework with PostgreSQL (Neon)
-builder.Services.AddDbContext<PmsDbContext>(options =>
-    options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
+// Add Entity Framework with configurable provider (Postgres or Sqlite)
+// Purpose: Allow switching between Neon Postgres and local SQLite for development.
+// Inputs: appsettings (ConnectionStrings:DefaultConnection), DatabaseProvider ("Postgres"|"Sqlite")
+// Outputs: Registers PmsDbContext with the chosen provider.
+var dbProvider = builder.Configuration["DatabaseProvider"] ?? "Postgres";
+var defaultConn = builder.Configuration.GetConnectionString("DefaultConnection");
+
+if (string.Equals(dbProvider, "Sqlite", StringComparison.OrdinalIgnoreCase))
+{
+    builder.Services.AddDbContext<PmsDbContext>(options => options.UseSqlite(defaultConn));
+}
+else
+{
+    builder.Services.AddDbContext<PmsDbContext>(options => options.UseNpgsql(defaultConn));
+}
 
 // Configure JWT Authentication
 var jwtKey = builder.Configuration["Jwt:Key"] ?? "your-super-secret-jwt-key-that-is-at-least-32-characters-long";
@@ -89,16 +101,23 @@ builder.Services.AddCors(options =>
 {
     options.AddPolicy("ReactApp", policy =>
     {
-        policy.WithOrigins(
-                "http://localhost:3000",
-                "http://localhost:3001",
-                "http://localhost:3003",
-                "http://localhost:3007",
-                "http://localhost:3008"
-            )
-              .AllowAnyHeader()
-              .AllowAnyMethod()
-              .AllowCredentials();
+        // Development: allow any localhost origin (all ports) with credentials
+        policy
+            .SetIsOriginAllowed(origin =>
+            {
+                try
+                {
+                    var uri = new Uri(origin);
+                    return uri.IsLoopback; // http://localhost:* or https://localhost:*
+                }
+                catch
+                {
+                    return false;
+                }
+            })
+            .AllowAnyHeader()
+            .AllowAnyMethod()
+            .AllowCredentials();
     });
 });
 

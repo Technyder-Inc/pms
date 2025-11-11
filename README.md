@@ -19,6 +19,43 @@ This project consists of two main components:
 - Interactive dashboards and reports
 - Real-time updates
 
+### New: All Properties Page (CRUD)
+- Route: `http://localhost:3003/property/all-properties`
+- Component: `frontend/src/pages/property/AllProperties.js`
+- Grid: `frontend/src/components/PropertiesGrid.js` with filters, pagination, and modals
+- Backend APIs: `/api/Properties` (list/create), `/api/Properties/{id}` (get/update/delete)
+
+Quick usage
+- Open the route above and use the status filter or search.
+- Click “New Property” to add a record; required fields are minimal for MVP.
+- Double‑click a row to view details; edit or delete via row actions.
+- Pagination controls manage `page` and `pageSize` server‑side.
+
+MVP vs Enterprise
+- MVP: Local component state, direct API calls, simple modals.
+- Enterprise: Central store (Context/Zustand/Redux), optimistic updates, audit logging, role‑based permissions, form validation, and undo/redo.
+
+Notes
+- Brand styling uses Lexend font and theme colors: primary `#dd9c6b`, secondary `#00234C`.
+- If backend returns errors, ensure migrations are up‑to‑date and the `Property` table columns match EF model.
+
+### New: Payment Plan Master–Detail Flow (Updated)
+- Routes:
+  - Plans list: `http://localhost:3003/schedule/payment-plans`
+  - Plan details: `http://localhost:3003/schedule/payment-plans/<PlanId>`
+  - Customer payments: `http://localhost:3003/payments/customer/<CustomerId>`
+- Components:
+  - `frontend/src/pages/schedule/PaymentPlanDetails.js` — shows only Schedule Payments for the selected plan (Child Schedules removed).
+  - `frontend/src/pages/schedule/PaymentSchedules.js` — accepts `defaultPlanId` to pre-filter by Plan ID and fetches `/api/PaymentSchedules?planId=<PlanId>`.
+  - `frontend/src/pages/payments/CustomerPayments.js` — lists and updates payments for a selected customer.
+- Usage:
+  - Open Plans list and click “View Details” to drill into a plan.
+  - The details page shows only Schedule Payments tied to the selected `PlanId`.
+  - From the details page, open a customer’s payments and edit via modal.
+- MVP vs Enterprise:
+  - MVP: Client-side filtering of customers by `PlanId`, direct calls to `/api/Payments`.
+  - Enterprise: Add server-side `planId` filter in `CustomersController`, centralize state (Redux/Zustand), role-based permissions, and audit logging.
+
 ### Backend API Features
 - RESTful API endpoints for all operations
 - **JWT Authentication & Authorization** for secure access
@@ -160,6 +197,34 @@ Quick verification
 - Confirm the Customers section is expanded and the active sublink is highlighted.
 - Switch to `Active Customers` and `Blocked Customers`; the grid updates accordingly.
 
+## 🖱️ Sidebar Interaction (Click-Only)
+
+- Behavior: Sidebar groups expand/collapse only on click. Hover does not open groups.
+- Active-route auto-open: When the current route is inside a module (e.g., `/customers/...`), that module remains expanded for context.
+- Where to edit: `frontend/src/layouts/Sidebar.js` → `ModuleItem` component.
+
+Example (click-only header):
+
+```jsx
+// In ModuleItem
+<NavItem>
+  <ModuleHeader onClick={() => setIsOpen(!isOpen)} isActive={isOpen}>
+    {/* icon + label */}
+  </ModuleHeader>
+  <SubMenu isOpen={isOpen}>{/* sublinks */}</SubMenu>
+</NavItem>
+```
+
+MVP vs Enterprise options
+- MVP: Local `useState` per group (current implementation). Multiple groups can stay open; minimal code.
+- Enterprise: Centralized state (Context/Zustand/Redux) to enforce single-open accordion, persist user preference, and instrument analytics on group toggles.
+
+Verification
+- Open `http://localhost:3003/dashboard`.
+- Hover a group header → it should not open.
+- Click a group header → it toggles open/closed; sublinks remain clickable.
+
+
 ## 📚 Sidebar Navigation (Expanded)
 
 - The sidebar now reflects the full structure requested, grouped by modules with branded emoji labels and Lexend font.
@@ -168,13 +233,18 @@ Quick verification
   - `📋 CUSTOMERS`: All Customers, Active Customers, Blocked Customers, Member Directory, Member Segments, Member Import/Bulk Actions
   - `🏘️ PROPERTY`: Projects, Inventory Status, Price Management, Availability Matrix
   - `💳 PAYMENTS`: Collections, Dues & Defaulters, Waivers & Adjustments, NDC Management, Refunds, Financial Ledger
-  - `📅 SCHEDULE`: Bookings, Holds Management, Possession, Booking Approvals, Payment Schedule Editor
+  - `📅 SCHEDULE`: Payment Plans, Payment Schedules, Payment Schedule Editor, Bookings, Holds Management, Possession, Booking Approvals
   - `🔄 TRANSFER`: Transfer Requests, Transfer Approvals
   - `📊 REPORTS`: Sales Analytics, Collections Analytics, Dues Analysis, Possession Status, Transfer Summary, Custom Reports
   - `🤖 AI & AUTOMATION (NEW)`: Lead Scoring, Collection Prediction, Anomaly Detection, Automated Reminders, Smart Recommendations, Audit Trail (AI Actions)
   - `⚙️ SETTINGS`: Company Settings, Business Rules, Payment Configuration, Notification Rules, Users & Roles, Approval Workflows, System Configuration, Compliance Configuration (NEW)
   - `🔐 COMPLIANCE`: Audit Trail, Approval Queue, Compliance Events, Data Management, Risk Assessment, Policy Monitoring, Compliance Reports
   - `📞 SUPPORT & HELP`: Documentation, FAQs, Contact Support, System Status
+
+Order update
+- Under `📅 SCHEDULE`, `Payment Plans` and `Payment Schedules` are pinned at the top for quick access.
+- Where to edit: `frontend/src/layouts/Sidebar.js` → `modules[...].sublinks` for the `SCHEDULE` group.
+- Verify: Open `http://localhost:3024/schedule/payment-plans` and confirm these links appear first.
 
 Routing behavior
 - All module links route to `/:module/:view` and resolve via `ModuleRouter`.
@@ -258,6 +328,38 @@ Approaches
 - `POST /api/Customers` - Create new customer
 - `PUT /api/Customers/{id}` - Update customer
 - `DELETE /api/Customers/{id}` - Delete customer
+ 
+#### Editing Customers (Frontend UI)
+
+- Open `http://localhost:3003/customers/all-customers`.
+- Double‑click a row to open the customer detail modal.
+- Click `Edit` to enable fields like Full Name, Email, Phone, CNIC, Gender, Status, City, Country, Reg ID, Plan ID.
+- Click `Save Changes` to persist. The grid and detail update immediately after a successful save.
+
+API example (PUT):
+
+```powershell
+# Replace CUST000123 with a real ID from your list
+$body = '{
+  "CustomerId": "CUST000123",
+  "FullName": "Updated Name",
+  "Email": "updated@example.com",
+  "Phone": "+92-300-0000000",
+  "Cnic": "35202-1234567-1",
+  "Gender": "Male",
+  "Status": "Active",
+  "City": "Lahore",
+  "Country": "Pakistan",
+  "RegId": "REG-88",
+  "PlanId": "PLAN-12"
+}'
+Invoke-WebRequest -Method PUT -Uri http://localhost:5296/api/Customers/CUST000123 -ContentType 'application/json' -Body $body | Select-Object -ExpandProperty Content
+```
+
+Notes
+- The backend is case‑insensitive for JSON keys; the UI sends PascalCase keys.
+- If you see `Customer ID mismatch`, ensure `CustomerId` in the payload matches the `{id}` path.
+- Brand styling: Lexend font, primary `#dd9c6b`, secondary `#00234C`.
 
 ### Property Management
 - `GET /api/Properties` - Get all properties (paginated)
@@ -268,6 +370,92 @@ Approaches
 
 ### Payment Plans
 - `GET /api/PaymentPlans` - Get all payment plans (paginated)
+
+### Schedule Manager (Child Schedules)
+- Route: `http://localhost:3001/schedule/payment-plans/<PlanId>`
+- Component: `frontend/src/pages/schedule/ScheduleManager.js`
+- Purpose: Manage child payment schedules under a parent payment plan.
+
+### Payment Plan Details (Updated)
+- Route: `/schedule/payment-plans/:planId`
+- Component: `frontend/src/pages/schedule/PaymentPlanDetails.js`
+- Change: Removed customer details section. The page now focuses on schedules.
+- Sections on the page:
+  - Child Schedules — manage schedules for the plan.
+  - Schedule Payments — table of payment schedules filtered by the current `planId`.
+
+Verification steps
+- Open `http://localhost:3024/schedule/payment-plans` and click “View Details” on a plan.
+- Confirm the details page shows schedule payments below and no customer details.
+- Backend APIs:
+  - `GET /api/PaymentSchedules?planId=<PlanId>&page=<n>&pageSize=<m>` — list schedules for a plan
+  - `GET /api/PaymentSchedules/<ScheduleId>` — get a single schedule
+  - `POST /api/PaymentSchedules` — create a schedule
+  - `PUT /api/PaymentSchedules/<ScheduleId>` — update a schedule
+  - `DELETE /api/PaymentSchedules/<ScheduleId>` — delete a schedule
+
+Usage
+- Open a plan detail route and use the “Add Schedule” button to create child entries.
+- Use search to filter by `ScheduleId` or `PaymentDescription`.
+- Edit and delete via row actions in the grid; pagination controls manage `page` and `pageSize`.
+
+Request examples
+
+```powershell
+# Create a schedule (PowerShell)
+$body = '{
+  "PlanId": "PLAN001",
+  "PaymentDescription": "Installment 1",
+  "InstallmentNo": 1,
+  "DueDate": "2025-12-01",
+  "Amount": 50000,
+  "SurchargeApplied": true,
+  "SurchargeRate": 0.05,
+  "Description": "First installment"
+}'
+Invoke-RestMethod -Method Post -Uri http://localhost:5296/api/PaymentSchedules -ContentType 'application/json' -Body $body
+
+# Update a schedule
+$update = '{
+  "ScheduleId": "PS0000001",
+  "PlanId": "PLAN001",
+  "PaymentDescription": "Installment 1 (updated)",
+  "Amount": 52000,
+  "SurchargeApplied": true,
+  "SurchargeRate": 0.05
+}'
+Invoke-RestMethod -Method Put -Uri http://localhost:5296/api/PaymentSchedules/PS0000001 -ContentType 'application/json' -Body $update
+
+# Delete a schedule
+Invoke-RestMethod -Method Delete -Uri http://localhost:5296/api/PaymentSchedules/PS0000001
+```
+
+Frontend helpers
+- `frontend/src/utils/api.js` provides typed helpers with function-level docs:
+  - `getPaymentSchedules(params)`
+  - `getPaymentSchedule(id)`
+  - `createPaymentSchedule(payload)`
+  - `updatePaymentSchedule(id, payload)`
+  - `deletePaymentSchedule(id)`
+
+Branding & UX
+- Uses Lexend font and theme colors: primary `#dd9c6b`, secondary `#00234C`.
+- Modal headers use primary; table headers use light gray background with secondary text.
+- Compact layout mirrors the Customers module for consistency.
+
+MVP vs Enterprise
+- MVP: Local state, direct API calls, simple modals and client-side search.
+- Enterprise: Server-side filtering and pagination; optimistic UI updates; role-based auth; audit logging; standardized error and toast system; form validation; and performance instrumentation.
+
+Setup notes
+- Ensure the backend is running: `cd pms/backend/PMS_APIs && dotnet run --launch-profile http` → `http://localhost:5296`.
+- Ensure the frontend is running: `cd pms/frontend && npm start` → `http://localhost:3001`.
+- If `REACT_APP_API_URL` is set, the frontend uses it as the API base; otherwise it defaults to `http://localhost:5296`.
+
+Verification
+- Open `http://localhost:3001/schedule/payment-plans/PLAN001`.
+- Confirm child schedules load, pagination works, and add/edit/delete mutate rows correctly.
+- Check dev server console for warnings; fix unused variables and dependency warnings where relevant.
 
 ### Authentication (Email-Based)
 
@@ -313,23 +501,34 @@ Frontend integration:
 
 ### Login Behavior (MVP Plaintext Support — Updated)
 
-- The backend login now supports plaintext password verification when a legacy `users.password` column exists.
+- The backend login supports plaintext password verification when a legacy `users.password` column exists.
 - If `users.password` is present, the API matches the provided password exactly (trimmed). If it matches, login succeeds.
 - If no `users.password` is available but `users.password_hash` exists, the API verifies the hash and allows login on match.
 - If neither is available, the API falls back to email-only login (MVP) and allows access if the email exists.
+
+#### Payload Update
+- The `Password` field is optional for login in development/MVP. If you leave the password empty in the UI, the client only sends `{ email }` to avoid backend validation on empty strings.
+- For enterprise deployments, require a non-empty password and enforce minimum length + complexity.
 
 Where to edit
 - `backend/PMS_APIs/Controllers/AuthController.cs` → `Login` endpoint implements plaintext fallback and raw SQL email lookup.
 
 Quick test (PowerShell)
 ```powershell
-Invoke-RestMethod -Method Post -Uri http://localhost:5296/api/Auth/login -ContentType 'application/json' -Body '{"email":"admin@technyder.co","password":"technyderteam"}' | ConvertTo-Json -Depth 5
+# Email-only (when password is not required in MVP)
+$body = @{ email = 'admin@technyder.co' } | ConvertTo-Json
+Invoke-RestMethod -Method Post -Uri 'http://localhost:5296/api/Auth/login' -ContentType 'application/json' -Body $body | ConvertTo-Json -Depth 5
+
+# Email + password (when password exists, plaintext or hash)
+$body = @{ email = 'admin@technyder.co'; password = 'technyderteam' } | ConvertTo-Json
+Invoke-RestMethod -Method Post -Uri 'http://localhost:5296/api/Auth/login' -ContentType 'application/json' -Body $body | ConvertTo-Json -Depth 5
 ```
 
 Troubleshooting 401
 - Ensure the user record exists in the `users` table. If not, create via:
 ```powershell
-Invoke-RestMethod -Method Post -Uri http://localhost:5296/api/Auth/register -ContentType 'application/json' -Body '{"fullName":"Admin","email":"admin@technyder.co","password":"technyderteam","isActive":true}'
+$body = @{ fullName = 'Admin'; email = 'admin@technyder.co'; password = 'technyderteam'; isActive = $true } | ConvertTo-Json
+Invoke-RestMethod -Method Post -Uri 'http://localhost:5296/api/Auth/register' -ContentType 'application/json' -Body $body
 ```
 - Normalize inputs: emails compared in lowercase and trimmed; passwords are trimmed.
 - If your DB only has a `password` column and no `password_hash`, the login still works via plaintext fallback.
@@ -338,6 +537,10 @@ Quick verification:
 - Start frontend: `cd pms/frontend && npm start` → open `http://localhost:3000/login`.
 - Enter an email and optionally a password, press `Sign In`.
 - Confirm navigation to `/dashboard` and that `localStorage.jwt` is present.
+
+Environment variables:
+- Set `REACT_APP_API_URL` in the frontend as needed. Defaults to `http://localhost:5296`.
+- Example: `set REACT_APP_API_URL=http://localhost:5296` when starting the React dev server.
 
 Best practices:
 - MVP: Accept email-only login for internal/test environments; add rate limiting.
@@ -373,6 +576,76 @@ Example:
 
 4) Migrations vs existing schema
 - If your Neon DB is empty: run `dotnet ef database update` to create tables.
+
+### Troubleshooting: Initial migration fails with existing tables
+
+If `dotnet ef database update` fails with errors like `42P07: relation "customers" already exists`, it means your database has some tables created manually or from a prior script, and the EF migration history table (`__EFMigrationsHistory`) is missing.
+
+Quick fix (MVP): create only the missing tables manually, then run the API.
+
+- Example: create the `properties` table to resolve `relation "properties" does not exist`:
+
+```
+-- Create table if missing (Neon/PostgreSQL)
+CREATE TABLE IF NOT EXISTS properties (
+  property_id VARCHAR(10) PRIMARY KEY,
+  project_name VARCHAR(100),
+  sub_project VARCHAR(100),
+  block VARCHAR(50),
+  plot_no VARCHAR(50),
+  size VARCHAR(50),
+  category VARCHAR(50),
+  type VARCHAR(50),
+  location VARCHAR(255),
+  price NUMERIC(15,2),
+  status VARCHAR(50) NOT NULL,
+  created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP NULL,
+  description TEXT,
+  features TEXT,
+  coordinates VARCHAR(100),
+  facing VARCHAR(50),
+  corner BOOLEAN,
+  park_facing BOOLEAN,
+  main_road BOOLEAN
+);
+
+CREATE INDEX IF NOT EXISTS IX_properties_project_name_block_plot_no
+  ON properties (project_name, block, plot_no);
+```
+
+#### Seed Sample Properties (Local Testing)
+
+Populate the grid quickly with sample data via the API. With backend on `http://localhost:5296` and frontend on `http://localhost:3004`, run:
+
+```powershell
+$properties = @(
+  @{ ProjectName = 'Sunrise Villas'; Block = 'A'; PlotNo = 'A-12'; Size = '10 Marla'; Location = 'Near Park'; Price = 6500000 },
+  @{ ProjectName = 'Sunrise Villas'; Block = 'B'; PlotNo = 'B-07'; Size = '1 Kanal'; Location = 'Main Boulevard'; Price = 14500000 },
+  @{ ProjectName = 'Emerald Heights'; Block = 'C'; PlotNo = 'C-30'; Size = '5 Marla'; Location = 'Corner'; Price = 4200000 },
+  @{ ProjectName = 'Emerald Heights'; Block = 'C'; PlotNo = 'C-31'; Size = '5 Marla'; Location = 'Opposite Park'; Price = 4100000 }
+);
+foreach ($p in $properties) {
+  $json = $p | ConvertTo-Json -Compress;
+  Invoke-WebRequest -Method POST -Uri http://localhost:5296/api/Properties -ContentType 'application/json' -Body $json | Out-Null;
+}
+
+# Verify list
+Invoke-WebRequest -Method GET http://localhost:5296/api/Properties -Headers @{ Origin = 'http://localhost:3004' } | Select-Object -ExpandProperty Content
+```
+
+You should see `data` with 4 items and pagination meta.
+
+Enterprise option: reconcile EF migrations with the existing database.
+
+- Add `__EFMigrationsHistory` and mark already-applied migrations as applied.
+- Alternatively, generate a tailored SQL script: `dotnet ef migrations script` and edit out statements for already-existing tables, then run the script.
+- Add a lightweight startup check to ensure critical tables exist and alert when out-of-sync (do not auto-create in production).
+
+Best practices:
+- Keep one authoritative migration path (EF) for consistent schema evolution.
+- Avoid mixing manual DDL with EF migrations on the same DB unless you document and track changes.
+- Use staging databases to test migrations before applying to production.
 - If tables already exist but with different names/columns:
   - MVP: use lightweight projections (as in `CustomersController.GetCustomers`) so list endpoints don’t join missing tables.
   - Enterprise: align EF models and migrations to your Neon schema, standardize table names (e.g., `customers`, `registration`, `payment_plans`), and apply migrations in CI.
@@ -569,10 +842,10 @@ Invoke-WebRequest -Uri "http://localhost:5296/api/Auth/USR0000001/status" -Metho
 ### Legacy Plaintext Passwords (Login Compatibility)
 
 Some databases store passwords as plaintext (e.g., `1234`) instead of hashes.
-The login endpoint supports these scenarios and will auto-upgrade on success:
+The login endpoint supports plaintext across common columns without requiring a schema change:
 
-- If `users.password_hash` contains the literal plaintext, login succeeds and the backend upgrades it to a hash.
-- If a legacy `users.password` column exists with plaintext, the backend will detect it, accept the login, and write the hash to `password_hash`.
+- Accepts plaintext stored in `users.password`, `users.passwordhash`, or `users.password_hash`.
+- If a hashed value exists (`password_hash`/`passwordhash`), it verifies using the hash first.
 
 Troubleshooting a `401: Invalid email or password`:
 - Ensure the user exists and `is_active = TRUE`.
@@ -580,13 +853,7 @@ Troubleshooting a `401: Invalid email or password`:
 - Backend now trims stored emails during lookup to avoid trailing/leading-space mismatches:
   - If you manually inserted users and the `email` column contains spaces, login will still work.
   - If a specific email still fails, re-register that user via `POST /api/Auth/register` to ensure a clean record.
-- If only a `password` column exists, set `password_hash` to the literal password once to trigger auto-upgrade on next login:
-
-```sql
-UPDATE users
-SET password_hash = '1234', is_active = TRUE
-WHERE LOWER(email) = 'fatima.noor@example.com';
-```
+- If only a `password` column exists, login still works. For production, migrate to hashed passwords via the registration flow or a one-off script.
 
 - Clear browser storage (`localStorage`: `jwt`, `jwt_expires`, `user`) and retry.
 
@@ -761,14 +1028,42 @@ Invoke-WebRequest -Uri "http://localhost:5296/api/Customers" -Method GET -Header
 
 ## 🗄️ Database Configuration
 
-The system currently uses SQLite for development and testing. To switch to PostgreSQL for production:
+You can switch between SQLite (local file) and PostgreSQL (Neon) without code changes. Set the provider and connection string in `backend/PMS_APIs/appsettings.Development.json`.
 
-1. **Update connection string in `appsettings.json`**
-2. **Change database provider in `Program.cs`**
-   ```csharp
-   builder.Services.AddDbContext<PmsDbContext>(options =>
-       options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
-   ```
+1. **Choose provider**
+   - Set `DatabaseProvider` to `"Postgres"` or `"Sqlite"`.
+   - Example:
+     ```json
+     {
+       "DatabaseProvider": "Postgres",
+       "ConnectionStrings": {
+         "DefaultConnection": "Host=YOUR_HOST;Database=YOUR_DB;Username=YOUR_USER;Password=YOUR_PASS;Port=5432;SSL Mode=Require;Trust Server Certificate=true"
+       }
+     }
+     ```
+     ```json
+     {
+       "DatabaseProvider": "Sqlite",
+       "ConnectionStrings": {
+         "DefaultConnection": "Data Source=pms_test.db"
+       }
+     }
+     ```
+
+2. **What the app uses**
+   - `Program.cs` selects the provider at startup based on `DatabaseProvider` and wires up EF accordingly.
+   - No other changes are required.
+
+3. **Verify Payment Plans record count**
+   - After starting the backend, run:
+     ```powershell
+     Invoke-RestMethod -Uri "http://localhost:5296/api/PaymentPlans?page=1&pageSize=1000" | ConvertTo-Json -Depth 6
+     ```
+   - Confirm `totalCount` matches your `payment_plan` table. If the count is lower than expected, the API is pointing at a different database. Update `DatabaseProvider` and `ConnectionStrings:DefaultConnection` to target the DB that holds your data.
+
+4. **Frontend display (no joins)**
+   - The grid under `Schedule > Payment Plans` reads the `PaymentPlan` table only and requests `pageSize=1000` to show all rows from the chosen database.
+   - If you still see fewer rows, verify the backend API response as above and adjust the connection string.
 
 ## 🔧 Development Guidelines
 
@@ -884,6 +1179,48 @@ For technical support or questions, please contact the development team.
 - Added `onDoubleClick` on table rows in `frontend/src/pages/Customers.js`.
 - Uses a simple modal with backdrop; no external dependencies.
 
+### Inline Child Schedules (New)
+- Feature: Clicking a `Plan ID` in the customers grid expands a child table showing payment schedules for that plan.
+- UI Changes:
+  - A new `Plan ID` column is added to `frontend/src/components/CustomersGrid.js`.
+  - Clicking the `Plan ID` toggles an inline child grid rendered right below the row.
+- Implementation:
+  - Reuses `frontend/src/pages/schedule/PaymentSchedules.js` and passes `defaultPlanId`.
+  - Safe key mapping for mixed schemas: uses `c.PlanId ?? c.planId` from customer rows.
+  - Brand styling: link uses `#dd9c6b` (primary) with `Lexend` font, content uses `#00234C`.
+- Backend Dependency:
+  - Child grid fetches data via `GET /api/PaymentSchedules?page=<n>&pageSize=<m>&planId=<PLAN001>`.
+  - Works with column variants: `PlanId` or `planid` in the schedules table.
+- Usage:
+  - Navigate to `Customers: All Customers` and click any visible `Plan ID` to expand.
+  - Click again to collapse. Double-click the row still opens the detail modal.
+- Troubleshooting:
+  - If the `Plan ID` displays as `—`, the customer record has no plan linked or the key is missing.
+  - If the child grid shows “No payment schedules found”, verify schedules exist for the given plan and the backend endpoint is reachable.
+  - Ensure `PaymentSchedules` endpoint supports `planId` query param (case-insensitive).
+
+Example (simplified):
+```jsx
+// CustomersGrid row cell
+const planId = c.PlanId ?? c.planId;
+<span
+  role="button"
+  onClick={(e) => { e.stopPropagation(); handlePlanClick(rowId, planId); }}
+  style={{ color: '#dd9c6b', textDecoration: 'underline', cursor: 'pointer' }}
+>
+  {toText(planId)}
+</span>
+
+// Expanded child row
+{isExpanded && expandedPlanId && (
+  <tr>
+    <td colSpan={8}>
+      <PaymentSchedules defaultPlanId={expandedPlanId} />
+    </td>
+  </tr>
+)}
+```
+
 ### Troubleshooting
 - If details fail to load, ensure the API is running at `http://localhost:5296` and CORS allows `http://localhost:3000` (configured in `Program.cs`).
 - Set `REACT_APP_API_URL` if your API runs elsewhere:
@@ -981,7 +1318,7 @@ Best practices
 
 ## 🌐 CORS for Multiple Frontend Ports (Updated)
 
-- If you run the frontend on ports other than `3000`/`3001` (e.g., `3003`, `3007`, `3008`), add them to the backend CORS policy in `backend/PMS_APIs/Program.cs`:
+- If you run the frontend on ports other than `3000`/`3001` (e.g., `3003`, `3004`, `3007`, `3008`), add them to the backend CORS policy in `backend/PMS_APIs/Program.cs`:
 
   ```csharp
   builder.Services.AddCors(options =>
@@ -992,6 +1329,7 @@ Best practices
               "http://localhost:3000",
               "http://localhost:3001",
               "http://localhost:3003",
+              "http://localhost:3004",
               "http://localhost:3007",
               "http://localhost:3008"
           )
@@ -1207,3 +1545,223 @@ Quick verification
 Notes and best practices
 - Keep header contrast high when using light backgrounds.
 - For multiple grids, consider centralizing table tokens in the theme (colors, font sizes) for consistency.
+
+## 📅 Schedule Module (New)
+
+- Adds two grids aligned with your schema and brand:
+  - `Payment Plans` (parent records)
+  - `Payment Schedules` (child records)
+
+### Navigation
+- Sidebar: `SCHEDULE` → `Payment Plans` appears first in the submenu, followed by other views like `Bookings`, `Holds Management`, `Possession`, `Booking Approvals`, `Payment Schedules`, and `Payment Schedule Editor`.
+- Routes:
+  - `http://localhost:3000/schedule/payment-plans`
+  - `http://localhost:3000/schedule/payment-schedules`
+
+### Default Sidebar: All Modules Restored
+- Sidebar shows the full navigation: `DASHBOARD`, `CUSTOMERS`, `PROPERTY`, `PAYMENTS`, `SCHEDULE`, `TRANSFER`, `REPORTS`, `AI & AUTOMATION`, `SETTINGS`, `COMPLIANCE`, and `SUPPORT & HELP`.
+- Each module links to its views (e.g., `customers/all-customers`, `property/inventory-status`, `payments/collections`, `schedule/payment-plans`).
+
+### Optional Minimal Setup: Payment Plans-only Grid
+- If you need a focused demo, reduce the sidebar to `SCHEDULE` → `Payment Plans`.
+- Steps: edit `frontend/src/layouts/Sidebar.js` and set the `modules` array to only include the `SCHEDULE` section, and optionally hide other labels via `hiddenLabels`.
+- The `Payment Plans` grid displays all records from the Payment Plans table without pagination.
+- Search is available by `Plan ID`, `Name`, and `Frequency`.
+
+### Data sources
+- `Payment Plans` uses `/api/PaymentPlans` and maps fields across schema variants:
+  - `planid/PlanId`, `planname/PlanName`, `totalamount/TotalAmount`, `durationmonths/DurationMonths`, `frequency/Frequency`, `description/Description`, `createdat/CreatedAt`.
+- The frontend requests `pageSize=1000` to retrieve all rows in one call.
+- `Payment Schedules` expects `/api/PaymentSchedules` with fields:
+  - `scheduleid/ScheduleId`, `planid/PlanId`, `paymentdescription/PaymentDescription`, `installmentno/InstallmentNo`, `duedate/DueDate`, `amount/Amount`, `surchargeapplied/SurchargeApplied`, `surchargerate/SurchargeRate`, `description/Description`.
+- Filters:
+  - Plans (minimal): search by ID/Name/Frequency; shows all records (no pagination, no frequency selector).
+  - Schedules: filter by `Plan ID`, search description/Schedule ID, pagination.
+
+### UI & Brand
+- Colors: primary `#dd9c6b`, secondary `#00234C`, background white.
+- Font: `Lexend` via `@fontsource/lexend`.
+- Clean table styles with compact toolbar and pager.
+
+### Quick start
+1. Backend: run `dotnet run` in `backend/PMS_APIs` (API at `http://localhost:5296`).
+2. Frontend: `cd frontend && npm start` (app at `http://localhost:3000`).
+3. Open the sidebar `SCHEDULE` section → test `Payment Plans` (all records in one grid).
+4. Optional: Navigate to `Payment Plan Details` by clicking `View Details` for a plan.
+
+### Backend Schema Alignment (Payment Plans)
+**Neon column mapping (current)**
+- Backend `PaymentPlan` maps to table `paymentplan` (per user schema) and uses Neon column names:
+  - `planid`, `projectid`, `planname`, `totalamount`, `durationmonths`, `frequency`, `description`, `createdat`.
+- EF model is aligned via `[Column("<neon_column>")]` attributes in `backend/PMS_APIs/Models/PaymentPlan.cs`.
+
+### Backend Schema Alignment (Users)
+**Neon column mapping (current)**
+- Backend `User` maps to table `users` and uses Neon column names:
+  - `userid`, `fullname`, `email`, `passwordhash`, `roleid`, `isactive`, `createdat`.
+- EF model is aligned via `[Column("<neon_column>")]` attributes in `backend/PMS_APIs/Models/User.cs`.
+
+**Login fallback for mixed schemas**
+- The login flow first queries via EF (`_context.Users`). If EF mapping throws due to column mismatch, a raw SQL fallback selects both variants using `COALESCE` and aliases to expected names:
+  - `COALESCE(userid, user_id) AS user_id`, `COALESCE(fullname, full_name) AS full_name`, `COALESCE(roleid, role_id) AS role_id`, `COALESCE(isactive, is_active) AS is_active`, `COALESCE(createdat, created_at) AS created_at`.
+- This lets login succeed whether your `users` table uses Neon columns or legacy snake_case.
+
+**If your table uses snake_case (legacy)**
+ - Update attributes to `user_id`, `full_name`, `password_hash`, `role_id`, `is_active`, `created_at` if your DB uses underscores.
+
+### Backend Schema Alignment (Customers)
+
+Your Neon `customers` table may use camelCase columns (e.g., `customerid`, `fullname`, `createdat`, `regid`, `planid`) while some legacy setups use snake_case (e.g., `customer_id`, `full_name`, `created_at`, `reg_id`, `plan_id`). The `GET /api/Customers` endpoint now dynamically detects which variant exists and builds queries accordingly, preventing `42703: column does not exist` errors.
+
+- Column detection: At runtime, the API checks `information_schema.columns` for the following variants on `customers`:
+  - `customer_id` or `customerid`
+  - `full_name` or `fullname`
+  - `created_at` or `createdat`
+  - `reg_id` or `regid`
+  - `plan_id` or `planid`
+  - Optional: `allotmentstatus`
+- Allotments join: If the `allotments` table exists, it detects `customer_id` vs `customerid` for join conditions.
+- SELECT aliases: Regardless of variant, returned fields are aliased to snake_case keys (`customer_id`, `full_name`, `created_at`, `reg_id`, `plan_id`).
+- ORDER BY: Uses the detected customer ID column (no `COALESCE` on missing columns).
+
+Troubleshooting 500s on customers list
+- If you see `42703: column "customer_id" does not exist`, you likely have only `customerid`. The dynamic detection now handles this; ensure the backend has been rebuilt after updates.
+- Verify the table and columns exist in Neon: run `SELECT column_name FROM information_schema.columns WHERE table_name='customers';` and confirm the listed variants.
+- If your schema uses different names entirely, update `backend/PMS_APIs/Controllers/CustomersController.cs` to include your variants in the detection list and alias accordingly.
+
+Verification
+- Start the API (`dotnet run` in `backend/PMS_APIs`) and call:
+  ```powershell
+  Invoke-RestMethod -Method GET -Uri 'http://localhost:5296/api/Customers?page=1&pageSize=5' | ConvertTo-Json -Depth 3
+  ```
+  Confirm a JSON response with `data`, `totalCount`, `page`, `pageSize`, and no 500 errors.
+- Alternatively, remove explicit `[Column]` attributes and enable a naming convention at the DbContext level.
+
+#### Single-customer GET fallback
+- The `GET /api/Customers/{id}` endpoint dynamically detects present columns in `customers` via `information_schema.columns` and constructs a `SELECT` that only references existing columns.
+- This prevents `42703` errors when your schema lacks certain fields. Returned JSON keys match the model (`customerId`, `fullName`, `email`, `phone`, `status`, `city`, `registeredSize`, etc.).
+- `dob` handling is resilient: supports `timestamp/date`, `DateOnly`, and string representations. Any non-parsable value is safely ignored.
+- Example check:
+  ```powershell
+  $base = 'http://localhost:5296'
+  Invoke-RestMethod -Method GET -Uri "$base/api/Customers/CUST001" | Select-Object customerId, fullName, email, phone, status, city, registeredSize | ConvertTo-Json -Depth 3
+  ```
+
+#### PUT updates: partial and dynamic
+- `PUT /api/Customers/{id}` performs partial updates: only provided fields are updated; unspecified fields remain unchanged.
+- Column detection covers both Neon and snake_case variants, including:
+  - `registered_size` or `registeredsize`
+  - `additional_info` or `additionalinfo`
+  - `nominee_name` or `nomineename`, `nominee_id` or `nomineeid`, `nominee_relation` or `nomineerelation`
+- The SQL `SET` clause is built dynamically at runtime from provided fields, eliminating references to non-existent columns.
+- The route `{id}` must match the payload `customerId`; otherwise the endpoint returns `400 Bad Request`.
+- Example (PowerShell):
+  ```powershell
+  $base = 'http://localhost:5296'
+  $payload = @{
+    customerId = 'CUST001'
+    phone = '+92-300-5555555'
+    email = 'qa.update@example.com'
+    status = 'Active'
+    city = 'Lahore'
+    registeredSize = '1 Kanal'
+    additionalInfo = 'Partial update test via dynamic SQL'
+    nomineeName = 'Q A Person'
+    nomineeId = '42101-1234567-1'
+    nomineeRelation = 'Brother'
+  } | ConvertTo-Json
+  Invoke-RestMethod -Uri "$base/api/Customers/CUST001" -Method Put -Body $payload -ContentType 'application/json' | Select-Object customerId, email, phone, status, city, registeredSize, additionalInfo | ConvertTo-Json -Depth 3
+  ```
+
+Troubleshooting 400s on PUT
+- Ensure the payload includes `customerId` matching the route parameter.
+- If a specific field fails to update, verify the column exists using:
+  ```sql
+  SELECT column_name FROM information_schema.columns WHERE table_name='customers';
+  ```
+  and confirm your column variant is present in detection lists.
+
+**Verify login**
+- Register: `POST /api/Auth/register` with `{ fullName, email, password }`.
+- Login: `POST /api/Auth/login` with `{ email, password }`.
+- Expected: `200 OK` with `{ token, expiresAt, user }`.
+
+**If your table uses snake_case (legacy)**
+- Update the attributes accordingly (e.g., `plan_id`, `plan_name`, `total_amount`, `duration_months`, `created_at`).
+- Alternatively, remove explicit `[Column]` attributes and use `UseSnakeCaseNamingConvention()` in your DbContext.
+
+**Controller behavior**
+- `PaymentPlansController` returns a paginated list ordered by `CreatedAt`, with optional filters `projectId`, `frequency`.
+- The endpoint projects entity fields directly; no joins or derived columns are used.
+
+#### Verify alignment
+- Backend: `GET http://localhost:5296/api/PaymentPlans?page=1&pageSize=1000` returns `{ data, totalCount, page, pageSize, totalPages }`.
+- With the Neon mapping above, the API now returns all rows without 500 errors. If the count is lower than expected, confirm the connection string points to the database with the intended records.
+- Frontend: navigate to `/schedule/payment-plans` and confirm the grid loads without 500 errors.
+- Backend: `GET http://localhost:5296/api/PaymentSchedules?page=1&pageSize=10` should return `{ data, totalCount, page, pageSize, totalPages }`.
+- Frontend: navigate to `/schedule/payment-schedules` and confirm the grid loads.
+
+### Frontend Customers Rendering
+**Safety against mixed-schema nulls/objects**
+- Some customer fields may arrive as empty objects (e.g., `{}`) or `null` from APIs when columns are absent or unmapped across schemas.
+- The Customers grid now uses a small formatter to render only safe text values and avoid React’s “Objects are not valid as a React child” error.
+
+Example
+```js
+// frontend/src/components/CustomersGrid.js
+/**
+ * toText
+ * Purpose: Safely convert any value to a user-friendly text for rendering.
+ * Inputs: v (any)
+ * Outputs: string suitable for React text nodes; returns '' for objects/undefined.
+ */
+const toText = (v) => {
+  if (v === null || v === undefined) return '';
+  if (typeof v === 'object') return '';
+  const s = String(v);
+  return s.trim();
+};
+
+// Usage: wrap table cells and detail fields
+<Td>{toText(c.Email || c.email)}</Td>
+```
+
+Troubleshooting
+- If you still see the React child error, search the component for direct object renders and wrap them with `toText`.
+- Confirm the backend returns `null` (not `{}`) for missing optional fields where possible.
+
+### Troubleshooting
+- If `Payment Schedules` shows an error or empty list:
+  - Confirm `/api/PaymentSchedules` exists and supports `planId`, `page`, `pageSize`.
+  - Check CORS in `Program.cs` includes your dev port (e.g., `http://localhost:3000`, `http://localhost:3002`).
+  - Verify auth token is present if API is protected.
+
+### Approaches
+- MVP:
+  - Use the provided grids and `/api/PaymentPlans`.
+  - For schedules, return empty or mock data until `/api/PaymentSchedules` is implemented.
+  - Optional: adapt frontend to fall back gracefully when schedules endpoint is missing.
+- Enterprise:
+  - Implement a `PaymentSchedule` model, DB set, and controller with query filters (`planId`, `installmentNo`, `dueDate range`, pagination, sorting).
+  - Add indexes on `planid`, `duedate` for performant queries.
+  - Enforce validation and referential integrity for `planid` FK.
+
+### Best practices
+- Scalability: paginate both grids, add server-side filtering/sorting.
+- Performance: index FK and date columns; avoid N+1 queries.
+- Maintainability: centralize API helpers in `frontend/src/utils/api.js`.
+- Security: validate inputs, use JWT auth, restrict admin-only mutations.
+
+### Verification
+- With both servers running, visit the two routes above.
+- Use filters and pagination; confirm tables render without runtime errors.
+
+### Files touched
+- Frontend:
+  - `src/pages/schedule/PaymentPlans.js`
+  - `src/pages/schedule/PaymentSchedules.js`
+  - `src/pages/ModuleRouter.js` (routes)
+  - `src/layouts/Sidebar.js` (links)
+  - `src/styles/GlobalStyles.js` (brand theme)
+- Utilities:
+  - `src/utils/api.js` (new helpers for plans and schedules)

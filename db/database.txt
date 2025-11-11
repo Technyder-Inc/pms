@@ -48,7 +48,7 @@ CREATE TABLE registration (
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     status VARCHAR(50) DEFAULT 'Pending'
 );
-
+-- This is parent payment plan where all the high level details of customer payment schedule will be recorded
 CREATE TABLE payment_plan (
     plan_id CHAR(10) PRIMARY KEY,
     project_id CHAR(10),
@@ -59,7 +59,7 @@ CREATE TABLE payment_plan (
     description VARCHAR(255),
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
-
+-- This is a child payment plan table, where installment details of parent plan will be recorded
 CREATE TABLE payment_schedule (
     schedule_id CHAR(10) PRIMARY KEY,
     plan_id CHAR(10) REFERENCES payment_plan(plan_id),

@@ -45,6 +45,7 @@ export default function ModuleRouter() {
       'inventory-status': React.lazy(() => import('./property/InventoryStatus')),
       'price-management': React.lazy(() => import('./property/PriceManagement')),
       'availability-matrix': React.lazy(() => import('./property/AvailabilityMatrix')),
+      'all-properties': React.lazy(() => import('./property/AllProperties')),
     },
     payments: {
       collections: React.lazy(() => import('./payments/Collections')),
@@ -59,6 +60,8 @@ export default function ModuleRouter() {
       'holds-management': React.lazy(() => import('./schedule/HoldsManagement')),
       possession: React.lazy(() => import('./schedule/Possession')),
       'booking-approvals': React.lazy(() => import('./schedule/BookingApprovals')),
+      'payment-plans': React.lazy(() => import('./schedule/PaymentPlans')),
+      'payment-schedules': React.lazy(() => import('./schedule/PaymentSchedules')),
       'payment-schedule-editor': React.lazy(() => import('./schedule/PaymentScheduleEditor')),
     },
     transfer: {

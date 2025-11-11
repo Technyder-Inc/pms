@@ -17,13 +17,12 @@ namespace PMS_APIs.DTOs
         public string Email { get; set; } = string.Empty;
 
         /// <summary>
-        /// User's password for authentication
-        /// Must be provided and not empty
+        /// User's password for authentication (optional for MVP)
+        /// If provided, must be at least 4 characters long.
         /// </summary>
-        [Required(ErrorMessage = "Password is required")]
         // Accept 4+ chars to support existing seed data (e.g., "1234").
-        // For production, prefer 8+ with complexity requirements.
+        // For production, prefer 8+ with complexity requirements and required password.
         [MinLength(4, ErrorMessage = "Password must be at least 4 characters long")]
-        public string Password { get; set; } = string.Empty;
+        public string? Password { get; set; }
     }
 }

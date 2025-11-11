@@ -15,6 +15,8 @@ import {
 } from './pages';
 import ModuleRouter from './pages/ModuleRouter';
 import RequireAuth from './components/RequireAuth';
+import PaymentPlanDetails from './pages/schedule/PaymentPlanDetails';
+import CustomerPayments from './pages/payments/CustomerPayments';
 
 function App() {
   return (
@@ -40,6 +42,9 @@ function App() {
               {/* Dynamic routes for new sidebar sections */}
               <Route path=":module" element={<ModuleRouter />} />
               <Route path=":module/:view" element={<ModuleRouter />} />
+              {/* Explicit detail routes */}
+              <Route path="schedule/payment-plans/:planId" element={<PaymentPlanDetails />} />
+              <Route path="payments/customer/:customerId" element={<CustomerPayments />} />
             </Route>
           </Route>
         </Routes>

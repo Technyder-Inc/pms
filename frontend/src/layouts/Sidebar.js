@@ -184,19 +184,13 @@ const StyledNavLink = styled(NavLink)`
 
 /**
  * ModuleItem
- * Purpose: Render a top-level sidebar module with collapsible sublinks.
+ * Purpose: Render a top-level sidebar module with collapsible sublinks that open/close on click.
  * Inputs:
  *  - label: display string (e.g., 'CUSTOMERS')
  *  - slug: base path for routing (e.g., 'customers')
  *  - sublinks: array of { label, path } items
  *  - icon: React component for vector icon (e.g., FiUsers)
- * Outputs: Collapsible section with NavLink items; auto-opens when the current route is within the module.
- */
-/**
- * ModuleItem
- * Purpose: Render a top-level sidebar module with collapsible sublinks and hover-open behavior.
- * Inputs: label (string), slug (string), sublinks (array of {label, path}), icon (React component).
- * Outputs: Collapsible/hover-open section with animated sublink hover effects.
+ * Outputs: Collapsible section with NavLink items; expands on click and stays open when the current route is within the module. Does not open on hover.
  */
 const ModuleItem = ({ label, slug, sublinks, icon: Icon }) => {
   const location = useLocation();
@@ -209,10 +203,7 @@ const ModuleItem = ({ label, slug, sublinks, icon: Icon }) => {
   }, [isInModule]);
 
   return (
-    <NavItem
-      onMouseEnter={() => setIsOpen(true)}
-      onMouseLeave={() => { if (!isInModule) setIsOpen(false); }}
-    >
+    <NavItem>
       <ModuleHeader onClick={() => setIsOpen(!isOpen)} isActive={isOpen}>
         <HeaderLeft>
           {Icon && (
@@ -248,8 +239,8 @@ const ModuleItem = ({ label, slug, sublinks, icon: Icon }) => {
  * Outputs: Sidebar navigation with groups and branded styling.
  */
 const Sidebar = ({ isCollapsed = false, onToggleLinksBar }) => {
-  // Labels to hide from the sidebar (bottom items requested)
-  const hiddenLabels = new Set(['COMPLIANCE', 'SUPPORT & HELP']);
+  // Labels to hide from the sidebar (none hidden; restore all links)
+  const hiddenLabels = new Set();
 
   const modules = [
     {
@@ -257,7 +248,11 @@ const Sidebar = ({ isCollapsed = false, onToggleLinksBar }) => {
       slug: 'dashboard',
       icon: FiHome,
       sublinks: [
-        { label: 'Home Overview', path: '' },
+        { label: 'Overview', path: '' },
+        { label: 'Projects', path: 'projects' },
+        { label: 'Tasks', path: 'tasks' },
+        { label: 'Team', path: 'team' },
+        { label: 'Calendar', path: 'calendar' },
       ],
     },
     {
@@ -268,9 +263,6 @@ const Sidebar = ({ isCollapsed = false, onToggleLinksBar }) => {
         { label: 'All Customers', path: 'all-customers' },
         { label: 'Active Customers', path: 'active-customers' },
         { label: 'Blocked Customers', path: 'blocked-customers' },
-        { label: 'Member Directory', path: 'member-directory' },
-        { label: 'Member Segments', path: 'member-segments' },
-        { label: 'Member Import/Bulk Actions', path: 'member-import-bulk-actions' },
       ],
     },
     {
@@ -282,6 +274,7 @@ const Sidebar = ({ isCollapsed = false, onToggleLinksBar }) => {
         { label: 'Inventory Status', path: 'inventory-status' },
         { label: 'Price Management', path: 'price-management' },
         { label: 'Availability Matrix', path: 'availability-matrix' },
+        { label: 'All Properties', path: 'all-properties' },
       ],
     },
     {
@@ -302,6 +295,8 @@ const Sidebar = ({ isCollapsed = false, onToggleLinksBar }) => {
       slug: 'schedule',
       icon: FiCalendar,
       sublinks: [
+        { label: 'Payment Plans', path: 'payment-plans' },
+        { label: 'Payment Schedules', path: 'payment-schedules' },
         { label: 'Bookings', path: 'bookings' },
         { label: 'Holds Management', path: 'holds-management' },
         { label: 'Possession', path: 'possession' },
@@ -332,7 +327,7 @@ const Sidebar = ({ isCollapsed = false, onToggleLinksBar }) => {
       ],
     },
     {
-      label: 'AI & AUTOMATION (NEW)',
+      label: 'AI & AUTOMATION',
       slug: 'ai-automation',
       icon: FiCpu,
       sublinks: [
@@ -341,7 +336,7 @@ const Sidebar = ({ isCollapsed = false, onToggleLinksBar }) => {
         { label: 'Anomaly Detection', path: 'anomaly-detection' },
         { label: 'Automated Reminders', path: 'automated-reminders' },
         { label: 'Smart Recommendations', path: 'smart-recommendations' },
-        { label: 'Audit Trail (AI Actions)', path: 'audit-trail-ai-actions' },
+        { label: 'Audit Trail AI Actions', path: 'audit-trail-ai-actions' },
       ],
     },
     {
@@ -359,7 +354,29 @@ const Sidebar = ({ isCollapsed = false, onToggleLinksBar }) => {
         { label: 'Compliance Configuration (NEW)', path: 'compliance-configuration' },
       ],
     },
-    // COMPLIANCE and SUPPORT & HELP modules intentionally omitted via filtering below
+    {
+      label: 'COMPLIANCE',
+      slug: 'compliance',
+      icon: FiShield,
+      sublinks: [
+        { label: 'Audit Trail', path: 'audit-trail' },
+        { label: 'Approval Queue', path: 'approval-queue' },
+        { label: 'Compliance Events', path: 'compliance-events' },
+        { label: 'Data Management', path: 'data-management' },
+        { label: 'Risk Assessment', path: 'risk-assessment' },
+        { label: 'Policy Monitoring', path: 'policy-monitoring' },
+        { label: 'Compliance Reports', path: 'compliance-reports' },
+      ],
+    },
+    {
+      label: 'SUPPORT & HELP',
+      slug: 'support',
+      icon: FiHelpCircle,
+      sublinks: [
+        { label: 'Documentation', path: 'docs' },
+        { label: 'Contact Support', path: 'contact' },
+      ],
+    },
   ];
 
   // Compute a primary href for collapsed icon links

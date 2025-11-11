@@ -15,7 +15,7 @@ namespace PMS_APIs.Models
         /// Primary key for the users table
         /// </summary>
         [Key]
-        [Column("user_id")]
+        [Column("userid")]
         [StringLength(10)]
         public string UserId { get; set; } = string.Empty;
 
@@ -23,7 +23,7 @@ namespace PMS_APIs.Models
         /// Full name of the user
         /// Maximum length of 150 characters
         /// </summary>
-        [Column("full_name")]
+        [Column("fullname")]
         [StringLength(150)]
         [Required]
         public string FullName { get; set; } = string.Empty;
@@ -43,7 +43,7 @@ namespace PMS_APIs.Models
         /// Hashed password for user authentication
         /// Maximum length of 256 characters
         /// </summary>
-        [Column("password_hash")]
+        [Column("passwordhash")]
         [StringLength(256)]
         [Required]
         public string PasswordHash { get; set; } = string.Empty;
@@ -52,7 +52,7 @@ namespace PMS_APIs.Models
         /// Role identifier for the user (10 characters)
         /// Determines user permissions and access levels
         /// </summary>
-        [Column("role_id")]
+        [Column("roleid")]
         [StringLength(10)]
         public string? RoleId { get; set; }
 
@@ -60,14 +60,14 @@ namespace PMS_APIs.Models
         /// Indicates whether the user account is active
         /// Default value is true
         /// </summary>
-        [Column("is_active")]
+        [Column("isactive")]
         public bool IsActive { get; set; } = true;
 
         /// <summary>
         /// Timestamp when the user account was created
         /// Automatically set to current timestamp on creation
         /// </summary>
-        [Column("created_at")]
+        [Column("createdat")]
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     }
 }

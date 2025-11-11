@@ -69,7 +69,16 @@ namespace PMS_APIs.Controllers
                         var conn = _context.Database.GetDbConnection();
                         await conn.OpenAsync();
                         using var cmd = conn.CreateCommand();
-                        cmd.CommandText = @"SELECT user_id, full_name, email, role_id, is_active, created_at FROM users WHERE LOWER(TRIM(email)) = @email LIMIT 1";
+                        cmd.CommandText = @"SELECT 
+                            COALESCE(userid, user_id) AS user_id,
+                            COALESCE(fullname, full_name) AS full_name,
+                            email,
+                            COALESCE(roleid, role_id) AS role_id,
+                            COALESCE(isactive, is_active) AS is_active,
+                            COALESCE(createdat, created_at) AS created_at
+                          FROM users 
+                          WHERE LOWER(TRIM(email)) = @email 
+                          LIMIT 1";
                         var p = cmd.CreateParameter();
                         p.ParameterName = "@email";
                         p.Value = normalizedEmail;
@@ -107,25 +116,30 @@ namespace PMS_APIs.Controllers
                 var providedPassword = (loginRequest.Password ?? string.Empty).Trim();
                 if (!string.IsNullOrEmpty(providedPassword))
                 {
-                    var legacyPlain = await TryGetLegacyPlainPassword(user.UserId);
-                    if (legacyPlain != null)
+                var legacyPlain = await TryGetLegacyPlainPassword(user.UserId);
+                if (legacyPlain != null)
+                {
+                    // Plaintext password check (requested MVP behavior)
+                    if (!string.Equals(legacyPlain, providedPassword))
                     {
-                        // Plaintext password check (requested MVP behavior)
-                        if (!string.Equals(legacyPlain, providedPassword))
+                        return Unauthorized(new { message = "Invalid email or password" });
+                    }
+                }
+                else if (!string.IsNullOrWhiteSpace(user.PasswordHash))
+                {
+                    // Fall back to hash verification if plaintext not available
+                    var ok = VerifyPassword(providedPassword, user.PasswordHash);
+                    if (!ok)
+                    {
+                        // Additional fallback: some databases store plaintext in password_hash
+                        // Accept login if the stored value equals the provided password exactly.
+                        if (!string.Equals(user.PasswordHash, providedPassword))
                         {
                             return Unauthorized(new { message = "Invalid email or password" });
                         }
                     }
-                    else if (!string.IsNullOrWhiteSpace(user.PasswordHash))
-                    {
-                        // Fall back to hash verification if plaintext not available
-                        var ok = VerifyPassword(providedPassword, user.PasswordHash);
-                        if (!ok)
-                        {
-                            return Unauthorized(new { message = "Invalid email or password" });
-                        }
-                    }
-                    // If neither plaintext nor hash is available, allow login (MVP email-only fallback)
+                }
+                // If neither plaintext nor hash is available, allow login (MVP email-only fallback)
                 }
 
                 // Generate JWT token
@@ -444,7 +458,13 @@ namespace PMS_APIs.Controllers
                 var conn = _context.Database.GetDbConnection();
                 await conn.OpenAsync();
                 using var cmd = conn.CreateCommand();
-                cmd.CommandText = "SELECT password FROM users WHERE user_id = @id LIMIT 1";
+                // Read plaintext from any common password column and handle user id variants.
+                // Supports: password (plaintext), passwordhash (plaintext), password_hash (plaintext)
+                // Matches by either userid or user_id.
+                cmd.CommandText = @"SELECT COALESCE(password, passwordhash, password_hash) AS plain_password
+                                     FROM users
+                                     WHERE (userid = @id OR user_id = @id)
+                                     LIMIT 1";
 
                 var p = cmd.CreateParameter();
                 p.ParameterName = "@id";
